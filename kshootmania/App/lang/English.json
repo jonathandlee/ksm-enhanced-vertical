@@ -165,6 +165,8 @@
     "ItemMouseYInputDirection": "Mouse Y-Input Direction",
     "ItemSliderMouseInputSensitivity": "Slider/Mouse Input Sensitivity",
     "ItemSwapLRLaser": "Swap L/R Laser",
+    "ItemInvertLaserL": "invert left laser",
+    "ItemInvertLaserR": "invert right laser",
     "ItemCloseDirectoryKey": "Close Directory Key",
     "Item3BTKeysStartBack": "3 BT Keys + Start as Back Button",
     "ItemHispeedTypeXMod": "Hi-Speed Type x0.5 - x9.9",

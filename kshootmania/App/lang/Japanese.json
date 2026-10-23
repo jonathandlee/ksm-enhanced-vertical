@@ -165,6 +165,8 @@
     "ItemMouseYInputDirection": "マウスY軸の入力方向",
     "ItemSliderMouseInputSensitivity": "スライダー/マウス入力の感度",
     "ItemSwapLRLaser": "左右LASERの入れ替え",
+    "ItemInvertLaserL": "invert left laser",
+    "ItemInvertLaserR": "invert right laser",
     "ItemCloseDirectoryKey": "フォルダを閉じるボタン",
     "Item3BTKeysStartBack": "BT3つ同時押し+StartボタンでBackボタン扱いにする",
     "ItemHispeedTypeXMod": "ハイスピード x0.5 - x9.9",

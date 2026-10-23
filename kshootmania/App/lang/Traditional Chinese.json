@@ -165,6 +165,8 @@
     "ItemMouseYInputDirection": "滑鼠 Y 輸入方向",
     "ItemSliderMouseInputSensitivity": "滑桿/滑鼠靈敏度",
     "ItemSwapLRLaser": "交換左右 LASER",
+    "ItemInvertLaserL": "invert left laser",
+    "ItemInvertLaserR": "invert right laser",
     "ItemCloseDirectoryKey": "關閉資料夾按鍵",
     "Item3BTKeysStartBack": "同時按 3 個 BT + Start 鍵作為 Back 鍵",
     "ItemHispeedTypeXMod": "Hi-Speed x0.5 - x9.9",
