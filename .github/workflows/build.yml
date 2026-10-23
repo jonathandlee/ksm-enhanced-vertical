@@ -1,0 +1,56 @@
+name: Build Windows
+
+on:
+  push:
+    branches: [per-laser-invert, enhanced-vertical]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write   # needed to create releases
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Apply dependency patches
+        run: python scripts/ApplyDependencyPatches.py
+
+      - name: Download OpenSiv3D SDK 0.6.16
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://siv3d.jp/downloads/Siv3D/manual/0.6.16/OpenSiv3D_SDK_0.6.16.zip -OutFile sdk.zip
+          Expand-Archive sdk.zip -DestinationPath C:
+          # Find the folder that actually contains include\Siv3D.hpp (zip may have a top-level folder)
+          $sdk = (Get-ChildItem C:\siv3d -Recurse -Fbject { $_.Directory.Name -eq 'include' } |Select-Object -First 1).Directory.Parent.FullName
+          echo "SIV3D_0_6_16=$sdk" >> $env:GITHUB_EN
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Build
+        run: msbuild kshootmania.sln /m /p:Configuration=Release /p:Platform=x64 /verbosity:minimal
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory pkg\lang | Ou
+          Copy-Item kshootmania\App\ksm-enhanced-vertical.exe pkg\
+          Copy-Item kshootmania\App\lang\*.json pkg\
+          Copy-Item LICENSE pkg\
+          Compress-Archive pkg\* ksm-enhanced-vertic
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ksm-enhanced-vertical-invert
+          path: ksm-enhanced-vertical-invert.zip
+
+      - name: Create release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create ${{ github.ref_name }} ksm-enhanced-vertical-invert.zip --title "${{ github.ref_name }}"
+--generate-notes 
