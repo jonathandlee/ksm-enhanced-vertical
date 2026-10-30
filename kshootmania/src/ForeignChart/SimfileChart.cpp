@@ -22,27 +22,55 @@ namespace ForeignChart::detail
 
 		constexpr double kMaxSynthBpm = 60000.0;
 		constexpr double kMinSynthBpm = 0.01;
-		constexpr int64 kWarpCorrectionTicks = kTicksPerBeat;     // 1 beat
-		constexpr int64 kStopWindowTicks = kTicksPerBeat / 48;    // a 192nd note
+		constexpr int64 kWarpCorrectionTicks = kTicksPerBeat;  // 1 beat
+		constexpr int64 kStopWindowTicks = kTicksPerBeat / 48; // a 192nd note
 		constexpr double kDefaultBpm = 120.0;
 
 		const std::map<std::string, int32> kStepstypeKeys{
-			{ "dance-single", 4 }, { "dance-double", 8 }, { "dance-couple", 8 }, { "dance-routine", 8 },
-			{ "dance-solo", 6 }, { "dance-threepanel", 3 }, { "pump-single", 5 }, { "pump-halfdouble", 6 },
-			{ "pump-double", 10 }, { "pump-couple", 10 }, { "kb7-single", 7 }, { "ez2-single", 5 },
-			{ "ez2-double", 10 }, { "ez2-real", 7 }, { "para-single", 5 }, { "techno-single4", 4 },
-			{ "techno-single5", 5 }, { "techno-single8", 8 }, { "techno-double4", 8 }, { "techno-double5", 10 },
-			{ "bm-single5", 6 }, { "bm-single7", 8 }, { "bm-double5", 12 }, { "bm-double7", 16 },
-			{ "maniax-single", 4 }, { "maniax-double", 8 }, { "popn-five", 5 }, { "popn-nine", 9 },
+			{ "dance-single", 4 },
+			{ "dance-double", 8 },
+			{ "dance-couple", 8 },
+			{ "dance-routine", 8 },
+			{ "dance-solo", 6 },
+			{ "dance-threepanel", 3 },
+			{ "pump-single", 5 },
+			{ "pump-halfdouble", 6 },
+			{ "pump-double", 10 },
+			{ "pump-couple", 10 },
+			{ "kb7-single", 7 },
+			{ "ez2-single", 5 },
+			{ "ez2-double", 10 },
+			{ "ez2-real", 7 },
+			{ "para-single", 5 },
+			{ "techno-single4", 4 },
+			{ "techno-single5", 5 },
+			{ "techno-single8", 8 },
+			{ "techno-double4", 8 },
+			{ "techno-double5", 10 },
+			{ "bm-single5", 6 },
+			{ "bm-single7", 8 },
+			{ "bm-double5", 12 },
+			{ "bm-double7", 16 },
+			{ "maniax-single", 4 },
+			{ "maniax-double", 8 },
+			{ "popn-five", 5 },
+			{ "popn-nine", 9 },
 		};
 
-		double TicksToBeats(int64 ticks) { return static_cast<double>(ticks) / kTicksPerBeat; }
+		double TicksToBeats(int64 ticks)
+		{
+			return static_cast<double>(ticks) / kTicksPerBeat;
+		}
 
-		int64 BeatsToTicks(double beats) { return static_cast<int64>(std::llround(beats * kTicksPerBeat)); }
+		int64 BeatsToTicks(double beats)
+		{
+			return static_cast<int64>(std::llround(beats * kTicksPerBeat));
+		}
 
 		std::pair<int64, bool> TicksToPulse(int64 ticks)
 		{
-			if (ticks % kTicksPerPulse == 0) return { ticks / kTicksPerPulse, true };
+			if (ticks % kTicksPerPulse == 0)
+				return { ticks / kTicksPerPulse, true };
 			return SnapPulse(static_cast<double>(ticks) / kTicksPerPulse);
 		}
 
@@ -54,8 +82,10 @@ namespace ForeignChart::detail
 			{
 				if (text[i] == '/' && i + 1 < text.size() && text[i + 1] == '/')
 				{
-					while (i < text.size() && text[i] != '\r' && text[i] != '\n') ++i;
-					if (i < text.size()) out.push_back(text[i]);
+					while (i < text.size() && text[i] != '\r' && text[i] != '\n')
+						++i;
+					if (i < text.size())
+						out.push_back(text[i]);
 					continue;
 				}
 				out.push_back(text[i]);
@@ -65,7 +95,9 @@ namespace ForeignChart::detail
 
 		std::string ToUpperAscii(std::string s)
 		{
-			for (auto& c : s) if (c >= 'a' && c <= 'z') c = static_cast<char>(c - 'a' + 'A');
+			for (auto& c : s)
+				if (c >= 'a' && c <= 'z')
+					c = static_cast<char>(c - 'a' + 'A');
 			return s;
 		}
 
@@ -81,7 +113,8 @@ namespace ForeignChart::detail
 					start = i + 1;
 				}
 			}
-			while (parts.size() < 6) parts.emplace_back();
+			while (parts.size() < 6)
+				parts.emplace_back();
 			NoteBlock block;
 			block.stepstype = Trim(parts[0]);
 			block.description = Trim(parts[1]);
@@ -96,21 +129,29 @@ namespace ForeignChart::detail
 		{
 			std::vector<std::pair<int64, double>> out;
 			std::string cleaned;
-			for (const char c : raw) if (c != '\r' && c != '\n') cleaned.push_back(c);
+			for (const char c : raw)
+				if (c != '\r' && c != '\n')
+					cleaned.push_back(c);
 			size_t start = 0;
 			for (size_t i = 0; i <= cleaned.size(); ++i)
 			{
-				if (i != cleaned.size() && cleaned[i] != ',') continue;
+				if (i != cleaned.size() && cleaned[i] != ',')
+					continue;
 				const std::string chunk = Trim(std::string_view{ cleaned }.substr(start, i - start));
 				start = i + 1;
 				const size_t eq = chunk.find('=');
-				if (chunk.empty() || eq == std::string::npos) continue;
+				if (chunk.empty() || eq == std::string::npos)
+					continue;
 				const double beat = ParseDouble(std::string_view{ chunk }.substr(0, eq), std::numeric_limits<double>::quiet_NaN());
 				const double value = ParseDouble(std::string_view{ chunk }.substr(eq + 1), std::numeric_limits<double>::quiet_NaN());
-				if (std::isnan(beat) || std::isnan(value)) continue;
+				if (std::isnan(beat) || std::isnan(value))
+					continue;
 				out.emplace_back(BeatsToTicks(beat), value);
 			}
-			std::stable_sort(out.begin(), out.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+			std::stable_sort(out.begin(), out.end(), [](const auto& a, const auto& b)
+							 {
+								 return a.first < b.first;
+							 });
 			return out;
 		}
 
@@ -126,19 +167,21 @@ namespace ForeignChart::detail
 			std::vector<std::pair<int64, int64>> warpRanges; // [start, end) ticks
 
 			SimfileTiming(double offsetValue,
-				std::vector<std::pair<int64, double>> bpmValues,
-				std::vector<std::pair<int64, double>> stopValues,
-				std::vector<std::pair<int64, double>> delayValues,
-				std::vector<std::pair<int64, double>> warpValues)
-				: offset(offsetValue)
-				, bpms(std::move(bpmValues))
+						  std::vector<std::pair<int64, double>> bpmValues,
+						  std::vector<std::pair<int64, double>> stopValues,
+						  std::vector<std::pair<int64, double>> delayValues,
+						  std::vector<std::pair<int64, double>> warpValues)
+				: offset(offsetValue), bpms(std::move(bpmValues))
 			{
-				if (bpms.empty()) bpms.emplace_back(0, kDefaultBpm);
-				if (bpms.front().first > 0) bpms.insert(bpms.begin(), { 0, bpms.front().second });
+				if (bpms.empty())
+					bpms.emplace_back(0, kDefaultBpm);
+				if (bpms.front().first > 0)
+					bpms.insert(bpms.begin(), { 0, bpms.front().second });
 				for (auto& [beat, bpm] : bpms)
 				{
 					// Old simfiles used negative tempos as warps; the magnitude keeps the chart playable.
-					if (bpm <= 0) bpm = bpm != 0 ? std::abs(bpm) : kDefaultBpm;
+					if (bpm <= 0)
+						bpm = bpm != 0 ? std::abs(bpm) : kDefaultBpm;
 				}
 
 				// A negative stop winds the chart back, which is how a warp was spelled before #WARPS.
@@ -157,22 +200,29 @@ namespace ForeignChart::detail
 				}
 				for (const auto& [beat, seconds] : delayValues)
 				{
-					if (seconds > 0) delays.emplace_back(beat, seconds);
+					if (seconds > 0)
+						delays.emplace_back(beat, seconds);
 				}
 				for (const auto& [beat, length] : warpValues)
 				{
-					if (length > 0) intervals.emplace_back(beat, beat + BeatsToTicks(length));
+					if (length > 0)
+						intervals.emplace_back(beat, beat + BeatsToTicks(length));
 				}
 				std::sort(intervals.begin(), intervals.end());
 				for (const auto& [s, e] : intervals)
 				{
-					if (e <= s) continue;
-					if (!warpRanges.empty() && s <= warpRanges.back().second) warpRanges.back().second = std::max(warpRanges.back().second, e);
-					else warpRanges.emplace_back(s, e);
+					if (e <= s)
+						continue;
+					if (!warpRanges.empty() && s <= warpRanges.back().second)
+						warpRanges.back().second = std::max(warpRanges.back().second, e);
+					else
+						warpRanges.emplace_back(s, e);
 				}
 
-				for (const auto& [beat, seconds] : stops) m_stopAt[beat] = seconds;
-				for (const auto& [beat, seconds] : delays) m_delayAt[beat] = seconds;
+				for (const auto& [beat, seconds] : stops)
+					m_stopAt[beat] = seconds;
+				for (const auto& [beat, seconds] : delays)
+					m_delayAt[beat] = seconds;
 				buildCache();
 			}
 
@@ -181,26 +231,32 @@ namespace ForeignChart::detail
 				double bpm = bpms.front().second;
 				for (const auto& [segBeat, segBpm] : bpms)
 				{
-					if (segBeat <= beat) bpm = segBpm;
-					else break;
+					if (segBeat <= beat)
+						bpm = segBpm;
+					else
+						break;
 				}
 				return bpm;
 			}
 
 			bool isWarped(int64 beat) const
 			{
-				for (const auto& [s, e] : warpRanges) if (s <= beat && beat < e) return true;
+				for (const auto& [s, e] : warpRanges)
+					if (s <= beat && beat < e)
+						return true;
 				return false;
 			}
 
 			int64 unwarpedTicks(int64 start, int64 end) const
 			{
-				if (end <= start) return 0;
+				if (end <= start)
+					return 0;
 				int64 total = end - start;
 				for (const auto& [ws, we] : warpRanges)
 				{
 					const int64 overlap = std::min(end, we) - std::max(start, ws);
-					if (overlap > 0) total -= overlap;
+					if (overlap > 0)
+						total -= overlap;
 				}
 				return std::max<int64>(0, total);
 			}
@@ -214,7 +270,8 @@ namespace ForeignChart::detail
 				}
 				const size_t index = static_cast<size_t>(std::distance(m_marks.begin(), it)) - 1;
 				const int64 mark = m_marks[index];
-				if (beat == mark) return m_arrival[index];
+				if (beat == mark)
+					return m_arrival[index];
 				return m_departure[index] + TicksToBeats(unwarpedTicks(mark, beat)) * 60.0 / bpmAt(mark);
 			}
 
@@ -228,15 +285,20 @@ namespace ForeignChart::detail
 			void buildCache()
 			{
 				std::set<int64> marks{ 0 };
-				for (const auto& [b, _] : bpms) marks.insert(b);
-				for (const auto& [b, _] : stops) marks.insert(b);
-				for (const auto& [b, _] : delays) marks.insert(b);
+				for (const auto& [b, _] : bpms)
+					marks.insert(b);
+				for (const auto& [b, _] : stops)
+					marks.insert(b);
+				for (const auto& [b, _] : delays)
+					marks.insert(b);
 				for (const auto& [s, e] : warpRanges)
 				{
 					marks.insert(s);
 					marks.insert(e);
 				}
-				for (const int64 m : marks) if (m >= 0) m_marks.push_back(m);
+				for (const int64 m : marks)
+					if (m >= 0)
+						m_marks.push_back(m);
 
 				double clock = -offset;
 				for (size_t i = 0; i < m_marks.size(); ++i)
@@ -248,10 +310,12 @@ namespace ForeignChart::detail
 						clock += TicksToBeats(unwarpedTicks(previous, mark)) * 60.0 / bpmAt(previous);
 					}
 					// A delay pauses before its own beat; a stop pauses after it.
-					if (const auto d = m_delayAt.find(mark); d != m_delayAt.end()) clock += d->second;
+					if (const auto d = m_delayAt.find(mark); d != m_delayAt.end())
+						clock += d->second;
 					m_arrival.push_back(clock);
 					double departure = clock;
-					if (const auto s = m_stopAt.find(mark); s != m_stopAt.end()) departure += s->second;
+					if (const auto s = m_stopAt.find(mark); s != m_stopAt.end())
+						departure += s->second;
 					m_departure.push_back(departure);
 					clock = departure;
 				}
@@ -262,7 +326,8 @@ namespace ForeignChart::detail
 		std::map<int64, double> BuildTempoMap(const SimfileTiming& timing)
 		{
 			std::set<int64> marks{ 0 };
-			for (const auto& [b, _] : timing.bpms) marks.insert(b);
+			for (const auto& [b, _] : timing.bpms)
+				marks.insert(b);
 			for (const auto& [b, _] : timing.stops)
 			{
 				marks.insert(b);
@@ -280,7 +345,9 @@ namespace ForeignChart::detail
 				marks.insert(e + kWarpCorrectionTicks);
 			}
 			std::vector<int64> ordered;
-			for (const int64 m : marks) if (m >= 0) ordered.push_back(m);
+			for (const int64 m : marks)
+				if (m >= 0)
+					ordered.push_back(m);
 
 			std::map<int64, double> tempo;
 			Optional<double> previousBpm;
@@ -297,21 +364,26 @@ namespace ForeignChart::detail
 					const int64 nextBeat = ordered[index + 1];
 					const int64 nextPulse = TicksToPulse(nextBeat).first;
 					const int64 spanPulses = nextPulse - pulse;
-					if (spanPulses <= 0) continue;
+					if (spanPulses <= 0)
+						continue;
 					const double available = (timing.timeAt(nextBeat) - origin) - clock;
-					if (available <= 0) bpm = kMaxSynthBpm;
-					else bpm = std::min(kMaxSynthBpm, std::max(kMinSynthBpm, static_cast<double>(spanPulses) / (4.0 * available)));
+					if (available <= 0)
+						bpm = kMaxSynthBpm;
+					else
+						bpm = std::min(kMaxSynthBpm, std::max(kMinSynthBpm, static_cast<double>(spanPulses) / (4.0 * available)));
 					clock += static_cast<double>(spanPulses) / 4.0 / bpm;
 				}
 				else
 				{
 					bpm = timing.bpmAt(beat);
 				}
-				if (previousBpm && std::abs(*previousBpm - bpm) < 1e-9) continue;
+				if (previousBpm && std::abs(*previousBpm - bpm) < 1e-9)
+					continue;
 				tempo[pulse] = bpm;
 				previousBpm = bpm;
 			}
-			if (!tempo.contains(0)) tempo[0] = timing.bpmAt(0);
+			if (!tempo.contains(0))
+				tempo[0] = timing.bpmAt(0);
 			return tempo;
 		}
 
@@ -338,7 +410,8 @@ namespace ForeignChart::detail
 			int64 measureIndex = 0;
 			for (size_t i = 0; i <= noteText.size(); ++i)
 			{
-				if (i != noteText.size() && noteText[i] != ',') continue;
+				if (i != noteText.size() && noteText[i] != ',')
+					continue;
 				const std::string measure = noteText.substr(measureStart, i - measureStart);
 				measureStart = i + 1;
 
@@ -346,10 +419,12 @@ namespace ForeignChart::detail
 				size_t lineStart = 0;
 				for (size_t j = 0; j <= measure.size(); ++j)
 				{
-					if (j != measure.size() && measure[j] != '\n' && measure[j] != '\r') continue;
+					if (j != measure.size() && measure[j] != '\n' && measure[j] != '\r')
+						continue;
 					std::string row = Trim(std::string_view{ measure }.substr(lineStart, j - lineStart));
 					lineStart = j + 1;
-					if (!row.empty()) rows.push_back(std::move(row));
+					if (!row.empty())
+						rows.push_back(std::move(row));
 				}
 				if (!rows.empty())
 				{
@@ -369,13 +444,15 @@ namespace ForeignChart::detail
 							}
 							else if (ch == '2' || ch == '4')
 							{
-								if (!openHolds.contains(column)) openOrder.push_back(column);
+								if (!openHolds.contains(column))
+									openOrder.push_back(column);
 								openHolds[column] = beat;
 							}
 							else if (ch == '3')
 							{
 								const auto it = openHolds.find(column);
-								if (it == openHolds.end()) continue;
+								if (it == openHolds.end())
+									continue;
 								result.notes.push_back({ it->second, column, beat - it->second });
 								openHolds.erase(it);
 								std::erase(openOrder, column);
@@ -388,7 +465,8 @@ namespace ForeignChart::detail
 			// A hold with no tail is shortened to a tap.
 			for (const int32 column : openOrder)
 			{
-				if (const auto it = openHolds.find(column); it != openHolds.end()) result.notes.push_back({ it->second, column, 0 });
+				if (const auto it = openHolds.find(column); it != openHolds.end())
+					result.notes.push_back({ it->second, column, 0 });
 			}
 			return result;
 		}
@@ -398,12 +476,14 @@ namespace ForeignChart::detail
 			if (const auto it = block.tags.find(name); it != block.tags.end())
 			{
 				const std::string own = Trim(it->second);
-				if (!own.empty()) return own;
+				if (!own.empty())
+					return own;
 			}
 			if (const auto it = doc.songTags.find(name); it != doc.songTags.end())
 			{
 				const std::string song = Trim(it->second);
-				if (!song.empty()) return song;
+				if (!song.empty())
+					return song;
 			}
 			return fallback;
 		}
@@ -411,13 +491,20 @@ namespace ForeignChart::detail
 		int32 SlotForDifficulty(const std::string& name, int32 level)
 		{
 			const std::string n = ToLowerAscii(name);
-			if (n == "beginner" || n == "easy" || n == "basic" || n == "light") return 0;
-			if (n == "medium" || n == "normal" || n == "another") return 1;
-			if (n == "hard" || n == "difficult") return 2;
-			if (n == "challenge" || n == "expert" || n == "smaniac" || n == "edit") return 3;
-			if (level <= 6) return 0;
-			if (level <= 12) return 1;
-			if (level <= 16) return 2;
+			if (n == "beginner" || n == "easy" || n == "basic" || n == "light")
+				return 0;
+			if (n == "medium" || n == "normal" || n == "another")
+				return 1;
+			if (n == "hard" || n == "difficult")
+				return 2;
+			if (n == "challenge" || n == "expert" || n == "smaniac" || n == "edit")
+				return 3;
+			if (level <= 6)
+				return 0;
+			if (level <= 12)
+				return 1;
+			if (level <= 16)
+				return 2;
 			return 3;
 		}
 	}
@@ -429,15 +516,20 @@ namespace ForeignChart::detail
 		doc.isSsc = FileSystem::Extension(path).lowercased() == U"ssc";
 		// Index rather than pointer: doc.charts reallocates as blocks are added.
 		Optional<size_t> currentIndex;
-		const auto current = [&]() -> NoteBlock* { return currentIndex ? &doc.charts[*currentIndex] : nullptr; };
+		const auto current = [&]() -> NoteBlock*
+		{
+			return currentIndex ? &doc.charts[*currentIndex] : nullptr;
+		};
 
 		size_t pos = 0;
 		while (true)
 		{
 			const size_t hashAt = text.find('#', pos);
-			if (hashAt == std::string::npos) break;
+			if (hashAt == std::string::npos)
+				break;
 			const size_t colonAt = text.find(':', hashAt);
-			if (colonAt == std::string::npos) break;
+			if (colonAt == std::string::npos)
+				break;
 			const std::string name = ToUpperAscii(Trim(std::string_view{ text }.substr(hashAt + 1, colonAt - hashAt - 1)));
 			const size_t semiAt = text.find(';', colonAt);
 			const std::string value = semiAt == std::string::npos ? text.substr(colonAt + 1) : text.substr(colonAt + 1, semiAt - colonAt - 1);
@@ -453,10 +545,15 @@ namespace ForeignChart::detail
 				{
 					NoteBlock& block = *current();
 					block.noteText = value;
-					const auto tag = [&](const char* key) { const auto it = block.tags.find(key); return it == block.tags.end() ? std::string{} : it->second; };
+					const auto tag = [&](const char* key)
+					{
+						const auto it = block.tags.find(key);
+						return it == block.tags.end() ? std::string{} : it->second;
+					};
 					block.stepstype = tag("STEPSTYPE");
 					block.description = tag("DESCRIPTION");
-					if (block.description.empty()) block.description = tag("CHARTNAME");
+					if (block.description.empty())
+						block.description = tag("CHARTNAME");
 					block.difficulty = tag("DIFFICULTY");
 					block.meter = ParseIntTrunc(tag("METER"), 0);
 				}
@@ -475,7 +572,8 @@ namespace ForeignChart::detail
 				doc.songTags[name] = Trim(value);
 			}
 
-			if (semiAt == std::string::npos) break;
+			if (semiAt == std::string::npos)
+				break;
 			pos = semiAt + 1;
 		}
 		return doc;
@@ -487,7 +585,8 @@ namespace ForeignChart::detail
 		for (int32 i = 0; i < static_cast<int32>(doc.charts.size()); ++i)
 		{
 			const auto& text = doc.charts[i].noteText;
-			if (text.find_first_of("124Ll") != std::string::npos) indices.push_back(i);
+			if (text.find_first_of("124Ll") != std::string::npos)
+				indices.push_back(i);
 		}
 		return indices;
 	}
@@ -502,7 +601,8 @@ namespace ForeignChart::detail
 		const ParsedRows rows = ParseRows(block.noteText);
 
 		int32 declared = 0;
-		if (const auto it = kStepstypeKeys.find(ToLowerAscii(block.stepstype)); it != kStepstypeKeys.end()) declared = it->second;
+		if (const auto it = kStepstypeKeys.find(ToLowerAscii(block.stepstype)); it != kStepstypeKeys.end())
+			declared = it->second;
 		const int32 keys = rows.columns ? rows.columns : (declared ? declared : 4);
 
 		const double offset = ParseDouble(SongTag(doc, block, "OFFSET", "0"), 0.0);
@@ -519,7 +619,8 @@ namespace ForeignChart::detail
 		chart.bpms = BuildTempoMap(timing);
 		for (const auto& [_, bpm] : timing.bpms)
 		{
-			if (std::find(chart.displayBpms.begin(), chart.displayBpms.end(), bpm) == chart.displayBpms.end()) chart.displayBpms.push_back(bpm);
+			if (std::find(chart.displayBpms.begin(), chart.displayBpms.end(), bpm) == chart.displayBpms.end())
+				chart.displayBpms.push_back(bpm);
 		}
 		std::sort(chart.displayBpms.begin(), chart.displayBpms.end());
 		chart.timeSigs = { { 0, 4, 4 } };
@@ -528,15 +629,19 @@ namespace ForeignChart::detail
 		const auto mapping = LaneMap(keys);
 		for (const auto& note : rows.notes)
 		{
-			if (note.column >= static_cast<int32>(mapping.size())) continue;
-			if (timing.isWarped(note.beat)) continue; // unhittable in Etterna too
+			if (note.column >= static_cast<int32>(mapping.size()))
+				continue;
+			if (timing.isWarped(note.beat))
+				continue; // unhittable in Etterna too
 			const int64 start = TicksToPulse(note.beat).first;
 			int64 pulses = 0;
-			if (note.length > 0) pulses = std::max<int64>(0, TicksToPulse(note.beat + note.length).first - start);
+			if (note.length > 0)
+				pulses = std::max<int64>(0, TicksToPulse(note.beat + note.length).first - start);
 			PlaceNote(chart, mapping[note.column], start, pulses);
 		}
 		ClipHolds(chart);
-		if (IsEmpty(chart)) throw std::runtime_error("simfile chart has no notes");
+		if (IsEmpty(chart))
+			throw std::runtime_error("simfile chart has no notes");
 
 		const std::string stem = FileSystem::BaseName(path).toUTF8();
 		const std::string title = SongTag(doc, block, "TITLE", stem);
@@ -562,7 +667,8 @@ namespace ForeignChart::detail
 			int32 count = 0;
 			for (const auto& note : rows.notes)
 			{
-				if (timing.isWarped(note.beat)) continue;
+				if (timing.isWarped(note.beat))
+					continue;
 				const double t = timing.timeAt(note.beat);
 				first = std::min(first, t);
 				last = std::max(last, t);

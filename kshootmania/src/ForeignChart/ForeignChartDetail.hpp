@@ -85,13 +85,18 @@ namespace ForeignChart::detail
 	/// Map a StepMania/Etterna #METER onto KSM's 1-20 (Etterna meters run past 20). 0 or 1 = unknown.
 	inline Optional<int32> LevelFromMeter(int32 meter)
 	{
-		if (meter <= 1) return none;
-		if (meter <= 15) return meter;
+		if (meter <= 1)
+			return none;
+		if (meter <= 15)
+			return meter;
 		return Clamp(15 + (meter - 15 + 1) / 3, 15, 20);
 	}
 
 	/// Python-style round-half-to-even.
-	inline double RoundHalfEven(double v) { return std::nearbyint(v); }
+	inline double RoundHalfEven(double v)
+	{
+		return std::nearbyint(v);
+	}
 
 	/// Parse a decimal string leniently. Returns fallback on failure.
 	double ParseDouble(std::string_view s, double fallback);

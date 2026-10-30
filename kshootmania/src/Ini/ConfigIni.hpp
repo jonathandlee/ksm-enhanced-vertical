@@ -73,11 +73,11 @@ namespace ConfigIni
 		constexpr StringView kSelectSortType = U"mselview";
 		constexpr StringView kHispeed = U"hispeed";
 		constexpr StringView kShowFastSlow = U"viewtiming";
-        constexpr StringView kJudgeColor = U"judge_color";
-        constexpr StringView kTimingPosition = U"timing_position";
-        constexpr StringView kTimingMsDisplay = U"timing_ms_display";
-        constexpr StringView kTimingMsColor = U"timing_ms_color";
-        constexpr StringView kTimingMsWord = U"timing_ms_word";
+		constexpr StringView kJudgeColor = U"judge_color";
+		constexpr StringView kTimingPosition = U"timing_position";
+		constexpr StringView kTimingMsDisplay = U"timing_ms_display";
+		constexpr StringView kTimingMsColor = U"timing_ms_color";
+		constexpr StringView kTimingMsWord = U"timing_ms_word";
 		constexpr StringView kNoteSkin = U"noteskin";
 		constexpr StringView kBGMovie = U"backgroundmovie";
 
@@ -192,7 +192,7 @@ namespace ConfigIni
 	void Load();
 
 	void Save();
-    bool SaveSelectedIntegers(const Array<std::pair<String,int32>>& values);
+	bool SaveSelectedIntegers(const Array<std::pair<String, int32>>& values);
 
 	[[nodiscard]]
 	bool HasValue(StringView key);

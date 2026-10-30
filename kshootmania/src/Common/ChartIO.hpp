@@ -13,8 +13,8 @@ namespace ChartIO
 			return ForeignChart::LoadChartData(chartFilePath);
 		}
 		return FsUtils::HasKsonExtension(chartFilePath)
-			? kson::LoadKsonChartData(chartFilePath.toUTF8())
-			: kson::LoadKshChartData(chartFilePath.toUTF8());
+				   ? kson::LoadKsonChartData(chartFilePath.toUTF8())
+				   : kson::LoadKshChartData(chartFilePath.toUTF8());
 	}
 
 	[[nodiscard]]
@@ -25,8 +25,8 @@ namespace ChartIO
 			return ForeignChart::LoadMetaChartData(chartFilePath);
 		}
 		return FsUtils::HasKsonExtension(chartFilePath)
-			? kson::LoadKsonMetaChartData(chartFilePath.toUTF8())
-			: kson::LoadKshMetaChartData(chartFilePath.toUTF8());
+				   ? kson::LoadKsonMetaChartData(chartFilePath.toUTF8())
+				   : kson::LoadKshMetaChartData(chartFilePath.toUTF8());
 	}
 
 	/// .ksh/.kson charts can be edited in place (auto-sync writes the offset back); foreign ones cannot.

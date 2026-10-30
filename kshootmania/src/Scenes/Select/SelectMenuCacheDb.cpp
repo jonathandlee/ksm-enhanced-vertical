@@ -31,7 +31,7 @@ namespace
 		String songSortKey;
 		FilePath chartFileRelativePath;
 		kson::MetaChartData chartData;
-        int64 exMaximum=0;
+		int64 exMaximum = 0;
 		FolderConfIni folderConfIni;
 	};
 
@@ -280,7 +280,7 @@ namespace
 					.songSortKey = FsUtils::DirectoryNameByDirectoryPath(songDirPath).lowercased(),
 					.chartFileRelativePath = FileSystem::RelativePath(chartFilePath, baseDirectoryPath),
 					.chartData = chartData,
-					.exMaximum=MusicGame::Judgment::LoadChartExMaximum(chartFilePath),
+					.exMaximum = MusicGame::Judgment::LoadChartExMaximum(chartFilePath),
 					.folderConfIni = FolderConfIni::Load(chartFilePath),
 				});
 				chartExists = true;
@@ -292,12 +292,15 @@ namespace
 		}
 
 		// osu!/StepMania charts come back in filename order; list them easiest first
-		if (std::any_of(pRows->begin() + firstRowIndex, pRows->end(), [](const ChartRow& row) { return ForeignChart::IsForeignChart(row.chartFileRelativePath); }))
+		if (std::any_of(pRows->begin() + firstRowIndex, pRows->end(), [](const ChartRow& row)
+						{
+							return ForeignChart::IsForeignChart(row.chartFileRelativePath);
+						}))
 		{
 			std::stable_sort(pRows->begin() + firstRowIndex, pRows->end(), [](const ChartRow& a, const ChartRow& b)
-			{
-				return std::tuple{ a.chartData.meta.level, a.chartData.meta.difficulty.idx } < std::tuple{ b.chartData.meta.level, b.chartData.meta.difficulty.idx };
-			});
+							 {
+								 return std::tuple{ a.chartData.meta.level, a.chartData.meta.difficulty.idx } < std::tuple{ b.chartData.meta.level, b.chartData.meta.difficulty.idx };
+							 });
 			for (size_t i = firstRowIndex; i < pRows->size(); ++i)
 			{
 				(*pRows)[i].chartFileIndex = static_cast<int32>(i - firstRowIndex);
@@ -359,7 +362,7 @@ namespace
 		db.exec(
 			"CREATE TABLE IF NOT EXISTS charts ("
 			"ex_maximum INTEGER NOT NULL,"
-            "chart_path TEXT PRIMARY KEY,"
+			"chart_path TEXT PRIMARY KEY,"
 			"song_dir TEXT NOT NULL,"
 			"section_dir TEXT NOT NULL,"
 			"section_display_name TEXT,"
@@ -456,7 +459,10 @@ namespace
 		}
 
 		// Folders with osu!/StepMania charts also go stale when the parser changes
-		const bool hasForeignCharts = std::any_of(sourceFiles.begin(), sourceFiles.end(), [](const SourceFileInfo& file) { return ForeignChart::IsForeignChart(file.relativePath); });
+		const bool hasForeignCharts = std::any_of(sourceFiles.begin(), sourceFiles.end(), [](const SourceFileInfo& file)
+												  {
+													  return ForeignChart::IsForeignChart(file.relativePath);
+												  });
 		if (hasForeignCharts && GetMeta(db, U"foreign_parser_version").value_or(U"") != Format(ForeignChart::kParserVersion))
 		{
 			return false;
@@ -497,14 +503,14 @@ namespace
 
 		{
 			SQLite::Statement query(db,
-				"INSERT INTO charts("
-				"ex_maximum, chart_path, song_dir, section_dir, section_display_name, skip_section_heading,"
-				"visible_in_directory_name_sort, visible_in_all_name_sort, section_directory_index, song_directory_index, chart_file_index, song_sort_key,"
-				"difficulty_idx, level,"
-				"title, title_translit, title_img_filename, artist, artist_translit, artist_img_filename, chart_author,"
-				"disp_bpm, std_bpm, jacket_filename, jacket_author, icon_filename, information,"
-				"bgm_filename, bgm_vol, preview_offset, preview_duration, folder_volume_scale, folder_offset_ms, folder_tweet_option"
-				") VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+									"INSERT INTO charts("
+									"ex_maximum, chart_path, song_dir, section_dir, section_display_name, skip_section_heading,"
+									"visible_in_directory_name_sort, visible_in_all_name_sort, section_directory_index, song_directory_index, chart_file_index, song_sort_key,"
+									"difficulty_idx, level,"
+									"title, title_translit, title_img_filename, artist, artist_translit, artist_img_filename, chart_author,"
+									"disp_bpm, std_bpm, jacket_filename, jacket_author, icon_filename, information,"
+									"bgm_filename, bgm_vol, preview_offset, preview_duration, folder_volume_scale, folder_offset_ms, folder_tweet_option"
+									") VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
 			for (const auto& row : chartRows)
 			{
@@ -512,7 +518,7 @@ namespace
 				const auto& bgm = row.chartData.audio.bgm;
 				int32 columnIndex = 1;
 				query.bind(columnIndex++, static_cast<long long>(row.exMaximum));
-                query.bind(columnIndex++, row.chartFileRelativePath.toUTF8());
+				query.bind(columnIndex++, row.chartFileRelativePath.toUTF8());
 				query.bind(columnIndex++, row.songDirectoryRelativePath.toUTF8());
 				query.bind(columnIndex++, row.sectionDirectoryRelativePath.toUTF8());
 				if (row.sectionDisplayName)
@@ -579,10 +585,7 @@ namespace
 	{
 		Array<ChartRowResult> rows;
 
-		const std::string sql = "SELECT * FROM charts "
-			+ whereClause.toUTF8()
-			+ " ORDER BY "
-			+ orderByClause.toUTF8();
+		const std::string sql = "SELECT * FROM charts " + whereClause.toUTF8() + " ORDER BY " + orderByClause.toUTF8();
 		SQLite::Statement query(db, sql);
 		while (query.executeStep())
 		{
@@ -618,14 +621,14 @@ namespace
 			const FilePath sectionDirRel = Unicode::FromUTF8(query.getColumn("section_dir").getString());
 
 			rows.push_back(ChartRowResult{
-				.chartInfo = std::make_shared<SelectChartInfo>(chartPath, chartData, folderConfIni,query.getColumn("ex_maximum").getInt64()),
+				.chartInfo = std::make_shared<SelectChartInfo>(chartPath, chartData, folderConfIni, query.getColumn("ex_maximum").getInt64()),
 				.difficultyIdx = meta.difficulty.idx,
 				.songSortKey = Unicode::FromUTF8(query.getColumn("song_sort_key").getString()),
 				.songDirectoryPath = FileSystem::PathAppend(baseDirectoryPath, songDirRel),
 				.sectionDirectoryPath = sectionDirRel.isEmpty() ? FilePath{} : FileSystem::PathAppend(baseDirectoryPath, sectionDirRel),
 				.sectionDisplayName = query.getColumn("section_display_name").isNull()
-					? Optional<String>{}
-					: Optional<String>{ Unicode::FromUTF8(query.getColumn("section_display_name").getString()) },
+										  ? Optional<String>{}
+										  : Optional<String>{ Unicode::FromUTF8(query.getColumn("section_display_name").getString()) },
 				.skipSectionHeading = query.getColumn("skip_section_heading").getInt() != 0,
 				.visibleInDirectoryNameSort = query.getColumn("visible_in_directory_name_sort").getInt() != 0,
 				.visibleInAllNameSort = query.getColumn("visible_in_all_name_sort").getInt() != 0,

@@ -20,7 +20,8 @@ namespace ForeignChart
 		SplitPath Split(FilePathView chartPath)
 		{
 			const size_t sep = chartPath.indexOf(kVirtualSeparator);
-			if (sep == StringView::npos) return { FilePath{ chartPath }, none };
+			if (sep == StringView::npos)
+				return { FilePath{ chartPath }, none };
 			const String indexStr{ chartPath.substr(sep + 1) };
 			return { FilePath{ chartPath.substr(0, sep) }, ParseOpt<int32>(indexStr) };
 		}
@@ -28,8 +29,10 @@ namespace ForeignChart
 		Format FormatOfFile(FilePathView file)
 		{
 			const String ext = FileSystem::Extension(file).lowercased();
-			if (ext == U"osu") return Format::Osu;
-			if (ext == U"sm" || ext == U"ssc") return Format::Simfile;
+			if (ext == U"osu")
+				return Format::Osu;
+			if (ext == U"sm" || ext == U"ssc")
+				return Format::Simfile;
 			return Format::None;
 		}
 
@@ -54,13 +57,15 @@ namespace ForeignChart
 				std::lock_guard lock{ s_docMutex };
 				for (const auto& c : s_docCache)
 				{
-					if (c.path == path && c.size == size && c.writeTime == writeTime) return c.doc;
+					if (c.path == path && c.size == size && c.writeTime == writeTime)
+						return c.doc;
 				}
 			}
 			auto doc = std::make_shared<const SimfileDocument>(ReadSimfile(path));
 			std::lock_guard lock{ s_docMutex };
 			s_docCache.push_front({ FilePath{ path }, size, writeTime, doc });
-			if (s_docCache.size() > kDocCacheSize) s_docCache.pop_back();
+			if (s_docCache.size() > kDocCacheSize)
+				s_docCache.pop_back();
 			return doc;
 		}
 
@@ -73,7 +78,8 @@ namespace ForeignChart
 				return ConvertOsu(file);
 			case Format::Simfile:
 			{
-				if (!index) throw std::runtime_error("simfile path has no chart index");
+				if (!index)
+					throw std::runtime_error("simfile path has no chart index");
 				const auto doc = GetSimfile(file);
 				return ConvertSimfileChart(*doc, *index, file);
 			}
@@ -84,22 +90,29 @@ namespace ForeignChart
 
 		std::string FormatBpm(double bpm)
 		{
-			if (std::abs(bpm - std::round(bpm)) < 1e-3) return std::to_string(static_cast<int64>(std::llround(bpm)));
+			if (std::abs(bpm - std::round(bpm)) < 1e-3)
+				return std::to_string(static_cast<int64>(std::llround(bpm)));
 			char buf[64];
 			std::snprintf(buf, sizeof(buf), "%.2f", bpm);
 			std::string s = buf;
-			while (!s.empty() && s.back() == '0') s.pop_back();
-			if (!s.empty() && s.back() == '.') s.pop_back();
+			while (!s.empty() && s.back() == '0')
+				s.pop_back();
+			if (!s.empty() && s.back() == '.')
+				s.pop_back();
 			return s;
 		}
 
 		std::string DisplayBpm(const GriddedChart& chart)
 		{
 			std::vector<double> bpms = chart.displayBpms;
-			if (bpms.empty()) for (const auto& [_, b] : chart.bpms) bpms.push_back(b);
-			if (bpms.empty()) return "120";
+			if (bpms.empty())
+				for (const auto& [_, b] : chart.bpms)
+					bpms.push_back(b);
+			if (bpms.empty())
+				return "120";
 			const auto [mn, mx] = std::minmax_element(bpms.begin(), bpms.end());
-			if (FormatBpm(*mn) == FormatBpm(*mx)) return FormatBpm(*mn);
+			if (FormatBpm(*mn) == FormatBpm(*mx))
+				return FormatBpm(*mn);
 			return FormatBpm(*mn) + "-" + FormatBpm(*mx);
 		}
 
@@ -122,7 +135,8 @@ namespace ForeignChart
 				{
 					for (const auto& object : json)
 					{
-						if (const auto v = object.value.getOpt<int32>()) s_offsets->emplace(object.key, *v);
+						if (const auto v = object.value.getOpt<int32>())
+							s_offsets->emplace(object.key, *v);
 					}
 				}
 			}
@@ -133,7 +147,8 @@ namespace ForeignChart
 		{
 			std::lock_guard lock{ s_offsetMutex };
 			const auto& offsets = Offsets();
-			if (const auto it = offsets.find(FileSystem::FullPath(chartPath)); it != offsets.end()) return it->second;
+			if (const auto it = offsets.find(FileSystem::FullPath(chartPath)); it != offsets.end())
+				return it->second;
 			return none;
 		}
 
@@ -148,16 +163,21 @@ namespace ForeignChart
 			meta["difficulty"] = chart.slot; // must be an integer, or the chart loses its slot
 			meta["level"] = Clamp(chart.level, 1, 20);
 			meta["disp_bpm"] = DisplayBpm(chart);
-			if (!chart.titleTranslit.empty()) meta["title_translit"] = chart.titleTranslit;
-			if (!chart.artistTranslit.empty()) meta["artist_translit"] = chart.artistTranslit;
+			if (!chart.titleTranslit.empty())
+				meta["title_translit"] = chart.titleTranslit;
+			if (!chart.artistTranslit.empty())
+				meta["artist_translit"] = chart.artistTranslit;
 			{
 				const FilePath jacket = FindAsset(folder, Unicode::FromUTF8(chart.jacketFilename), kImageSuffixes);
-				if (!jacket.isEmpty()) meta["jacket_filename"] = FileSystem::RelativePath(jacket, folder).toUTF8();
+				if (!jacket.isEmpty())
+					meta["jacket_filename"] = FileSystem::RelativePath(jacket, folder).toUTF8();
 			}
 			{
 				std::string information = chart.source + " " + std::to_string(chart.keys) + "K";
-				if (!chart.difficultyName.empty()) information += " [" + chart.difficultyName + "]";
-				if (chart.sourceLevel) information += " lv" + std::to_string(chart.sourceLevel);
+				if (!chart.difficultyName.empty())
+					information += " [" + chart.difficultyName + "]";
+				if (chart.sourceLevel)
+					information += " lv" + std::to_string(chart.sourceLevel);
 				meta["information"] = information;
 			}
 
@@ -166,16 +186,20 @@ namespace ForeignChart
 				nlohmann::json arr = nlohmann::json::array();
 				for (const auto& [pulse, length] : lane)
 				{
-					if (length == 0) arr.push_back(pulse);
-					else arr.push_back(nlohmann::json::array({ pulse, length }));
+					if (length == 0)
+						arr.push_back(pulse);
+					else
+						arr.push_back(nlohmann::json::array({ pulse, length }));
 				}
 				return arr;
 			};
 			nlohmann::json note = nlohmann::json::object();
 			note["bt"] = nlohmann::json::array();
-			for (const auto& lane : chart.bt) note["bt"].push_back(laneJson(lane));
+			for (const auto& lane : chart.bt)
+				note["bt"].push_back(laneJson(lane));
 			note["fx"] = nlohmann::json::array();
-			for (const auto& lane : chart.fx) note["fx"].push_back(laneJson(lane));
+			for (const auto& lane : chart.fx)
+				note["fx"].push_back(laneJson(lane));
 
 			nlohmann::json bgm = nlohmann::json::object();
 			{
@@ -183,16 +207,19 @@ namespace ForeignChart
 				bgm["filename"] = audio.isEmpty() ? chart.audioFilename : FileSystem::RelativePath(audio, folder).toUTF8();
 			}
 			bgm["offset"] = chart.offsetMs;
-			if (chart.previewMs > 0) bgm["preview"] = { { "offset", chart.previewMs }, { "duration", 15000 } };
+			if (chart.previewMs > 0)
+				bgm["preview"] = { { "offset", chart.previewMs }, { "duration", 15000 } };
 
 			nlohmann::json beat = nlohmann::json::object();
 			beat["bpm"] = nlohmann::json::array();
-			for (const auto& [pulse, bpm] : chart.bpms) beat["bpm"].push_back(nlohmann::json::array({ pulse, bpm }));
+			for (const auto& [pulse, bpm] : chart.bpms)
+				beat["bpm"].push_back(nlohmann::json::array({ pulse, bpm }));
 			const bool plainTimeSig = chart.timeSigs.size() == 1 && chart.timeSigs.front() == std::tuple<int64, int32, int32>{ 0, 4, 4 };
 			if (!plainTimeSig)
 			{
 				beat["time_sig"] = nlohmann::json::array();
-				for (const auto& [idx, n, d] : chart.timeSigs) beat["time_sig"].push_back(nlohmann::json::array({ idx, nlohmann::json::array({ n, d }) }));
+				for (const auto& [idx, n, d] : chart.timeSigs)
+					beat["time_sig"].push_back(nlohmann::json::array({ idx, nlohmann::json::array({ n, d }) }));
 			}
 
 			nlohmann::json doc = nlohmann::json::object();
@@ -228,15 +255,19 @@ namespace ForeignChart
 	Array<FilePath> ListCharts(FilePathView directoryPath)
 	{
 		Array<FilePath> files = FileSystem::DirectoryContents(directoryPath, Recursive::No).filter([](FilePathView p)
-		{
-			return FileSystem::IsFile(p) && FormatOfFile(p) != Format::None;
-		});
-		files.sort_by([](const FilePath& a, const FilePath& b) { return FileSystem::FileName(a).lowercased() < FileSystem::FileName(b).lowercased(); });
+																								   {
+																									   return FileSystem::IsFile(p) && FormatOfFile(p) != Format::None;
+																								   });
+		files.sort_by([](const FilePath& a, const FilePath& b)
+					  {
+						  return FileSystem::FileName(a).lowercased() < FileSystem::FileName(b).lowercased();
+					  });
 
 		HashSet<String> sscStems;
 		for (const auto& f : files)
 		{
-			if (FileSystem::Extension(f).lowercased() == U"ssc") sscStems.insert(FileSystem::BaseName(f).lowercased());
+			if (FileSystem::Extension(f).lowercased() == U"ssc")
+				sscStems.insert(FileSystem::BaseName(f).lowercased());
 		}
 
 		Array<FilePath> result;
@@ -246,11 +277,13 @@ namespace ForeignChart
 			{
 				if (FormatOfFile(f) == Format::Osu)
 				{
-					if (IsManiaBeatmapQuick(f)) result.push_back(f);
+					if (IsManiaBeatmapQuick(f))
+						result.push_back(f);
 					continue;
 				}
 				// Packs often ship both; the .ssc is the newer, richer one.
-				if (FileSystem::Extension(f).lowercased() == U"sm" && sscStems.contains(FileSystem::BaseName(f).lowercased())) continue;
+				if (FileSystem::Extension(f).lowercased() == U"sm" && sscStems.contains(FileSystem::BaseName(f).lowercased()))
+					continue;
 				const auto doc = GetSimfile(f);
 				for (const int32 index : PlayableChartIndices(*doc))
 				{
@@ -274,7 +307,8 @@ namespace ForeignChart
 			kson::ChartData chartData = kson::LoadKsonChartData(stream);
 			if (chartData.error == kson::ErrorType::None)
 			{
-				if (const auto offset = OffsetOverride(chartPath)) chartData.audio.bgm.offset = *offset;
+				if (const auto offset = OffsetOverride(chartPath))
+					chartData.audio.bgm.offset = *offset;
 			}
 			return chartData;
 		}
@@ -307,7 +341,8 @@ namespace ForeignChart
 	String ScoreStem(StringView relativeChartPath)
 	{
 		const size_t sep = relativeChartPath.indexOf(kVirtualSeparator);
-		if (sep == StringView::npos) return FsUtils::EliminateExtension(relativeChartPath);
+		if (sep == StringView::npos)
+			return FsUtils::EliminateExtension(relativeChartPath);
 		return FsUtils::EliminateExtension(relativeChartPath.substr(0, sep)) + U"[" + String{ relativeChartPath.substr(sep + 1) } + U"]";
 	}
 
@@ -317,7 +352,8 @@ namespace ForeignChart
 		auto& offsets = Offsets();
 		offsets[FileSystem::FullPath(chartPath)] = offset;
 		JSON json;
-		for (const auto& [key, value] : offsets) json[key] = value;
+		for (const auto& [key, value] : offsets)
+			json[key] = value;
 		json.save(OffsetOverridePath());
 	}
 }

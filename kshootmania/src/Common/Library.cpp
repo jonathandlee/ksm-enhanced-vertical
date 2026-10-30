@@ -23,7 +23,8 @@ namespace Library
 		{
 			String full = FileSystem::FullPath(path);
 			full.replace(U'\\', U'/');
-			if (!full.ends_with(U'/')) full.push_back(U'/');
+			if (!full.ends_with(U'/'))
+				full.push_back(U'/');
 			return full;
 		}
 
@@ -31,7 +32,8 @@ namespace Library
 		FilePath ResolveSongsFolder(StringView configured)
 		{
 			const FilePath songs = FileSystem::PathAppend(configured, U"Songs");
-			if (FileSystem::IsDirectory(songs)) return songs;
+			if (FileSystem::IsDirectory(songs))
+				return songs;
 			return FilePath{ configured };
 		}
 
@@ -66,12 +68,18 @@ namespace Library
 
 		Array<FilePath> SubDirectories(FilePathView path)
 		{
-			Array<FilePath> dirs = FileSystem::DirectoryContents(path, Recursive::No).filter([](FilePathView p) { return FileSystem::IsDirectory(p); });
+			Array<FilePath> dirs = FileSystem::DirectoryContents(path, Recursive::No).filter([](FilePathView p)
+																							 {
+																								 return FileSystem::IsDirectory(p);
+																							 });
 			dirs.sort_by([](const FilePath& a, const FilePath& b)
-			{
-				return FsUtils::DirectoryNameByDirectoryPath(a).lowercased() < FsUtils::DirectoryNameByDirectoryPath(b).lowercased();
-			});
-			return dirs.map([](FilePathView p) { return FileSystem::FullPath(p); });
+						 {
+							 return FsUtils::DirectoryNameByDirectoryPath(a).lowercased() < FsUtils::DirectoryNameByDirectoryPath(b).lowercased();
+						 });
+			return dirs.map([](FilePathView p)
+							{
+								return FileSystem::FullPath(p);
+							});
 		}
 	}
 
@@ -81,7 +89,8 @@ namespace Library
 		libraries.push_back(Info{ Kind::Ksm, U"ksm", U"K-Shoot MANIA", NormalizeDir(FsUtils::SongsDirectoryPath()), false });
 		for (size_t i = 0; i < kForeignDefs.size(); ++i)
 		{
-			if (auto info = ForeignInfo(i)) libraries.push_back(*info);
+			if (auto info = ForeignInfo(i))
+				libraries.push_back(*info);
 		}
 		return libraries;
 	}
@@ -90,7 +99,8 @@ namespace Library
 	{
 		for (size_t i = 0; i < kForeignDefs.size(); ++i)
 		{
-			if (ForeignInfo(i)) return true;
+			if (ForeignInfo(i))
+				return true;
 		}
 		return false;
 	}
@@ -99,7 +109,8 @@ namespace Library
 	{
 		for (const auto& library : All())
 		{
-			if (library.id == id) return library;
+			if (library.id == id)
+				return library;
 		}
 		return none;
 	}
@@ -112,35 +123,41 @@ namespace Library
 		for (size_t i = 0; i < kForeignDefs.size(); ++i)
 		{
 			const auto info = ForeignInfo(i);
-			if (!info) continue;
+			if (!info)
+				continue;
 			const String root = info->rootPath.lowercased();
-			if (lowered.starts_with(root) || lowered + U'/' == root) return info;
+			if (lowered.starts_with(root) || lowered + U'/' == root)
+				return info;
 		}
 		return none;
 	}
 
 	Info LibraryForPath(FilePathView fullPath)
 	{
-		if (auto foreign = ForeignLibraryForPath(fullPath)) return *foreign;
+		if (auto foreign = ForeignLibraryForPath(fullPath))
+			return *foreign;
 		return All().front();
 	}
 
 	Array<FilePath> PackageDirectories(const Info& library)
 	{
-		if (library.rootIsPackage) return { FileSystem::FullPath(library.rootPath) };
+		if (library.rootIsPackage)
+			return { FileSystem::FullPath(library.rootPath) };
 		return SubDirectories(library.rootPath);
 	}
 
 	Array<FilePath> AllPackageDirectories()
 	{
 		Array<FilePath> result;
-		for (const auto& library : All()) result.append(PackageDirectories(library));
+		for (const auto& library : All())
+			result.append(PackageDirectories(library));
 		return result;
 	}
 
 	Optional<Info> FromSpecialPath(StringView path)
 	{
-		if (!IsSpecialPath(path)) return none;
+		if (!IsSpecialPath(path))
+			return none;
 		return FindById(path.substr(1));
 	}
 }

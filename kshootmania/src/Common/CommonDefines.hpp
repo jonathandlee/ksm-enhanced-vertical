@@ -114,12 +114,39 @@ enum class FastSlowMode : int32
 	kCount,
 };
 
-enum class JudgeColor : int32 { kFastBlue = 0, kFastRed, kCount };
+enum class JudgeColor : int32
+{
+	kFastBlue = 0,
+	kFastRed,
+	kCount
+};
 
-enum class TimingPosition : int32 { kUpperPlus = 0, kUpper, kStandard, kLower, kCount };
-enum class TimingMsDisplay : int32 { kOff = 0, kAll, kNear, kCrit, kCount };
+enum class TimingPosition : int32
+{
+	kUpperPlus = 0,
+	kUpper,
+	kStandard,
+	kLower,
+	kCount
+};
+enum class TimingMsDisplay : int32
+{
+	kOff = 0,
+	kAll,
+	kNear,
+	kCrit,
+	kCount
+};
 // Thresholds shared by ±ms COLOR (ms number color) and FAST/SLOW (when the FAST/SLOW word appears).
-enum class TimingMsColor : int32 { kOff = 0, kNear, kCrit, kSixteenMs, kAll, kCount };
+enum class TimingMsColor : int32
+{
+	kOff = 0,
+	kNear,
+	kCrit,
+	kSixteenMs,
+	kAll,
+	kCount
+};
 
 enum class NoteSkinType : int32
 {
@@ -226,8 +253,8 @@ struct PlatformKeyDef
 };
 
 // macOSの仮想キーコードは IOKit/hidsystem/ev_keymap.h で定義
-inline constexpr std::array<PlatformKeyDef, 2> kPlatformKeys = {{
+inline constexpr std::array<PlatformKeyDef, 2> kPlatformKeys = { {
 	{ kPlatformKeyCodeOffset + 0x66, 0x66 }, // kVK_JIS_Eisu(英数)
 	{ kPlatformKeyCodeOffset + 0x68, 0x68 }, // kVK_JIS_Kana(かな)
-}};
+} };
 #endif

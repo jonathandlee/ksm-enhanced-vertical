@@ -21,7 +21,10 @@ namespace ForeignChart::detail
 			double time = 0.0;
 			double beatLength = 0.0;
 			int32 meter = 4;
-			double bpm() const { return beatLength > 0 ? 60000.0 / beatLength : 0.0; }
+			double bpm() const
+			{
+				return beatLength > 0 ? 60000.0 / beatLength : 0.0;
+			}
 		};
 
 		struct HitObject
@@ -29,7 +32,10 @@ namespace ForeignChart::detail
 			double time = 0.0;
 			int32 column = 0;
 			Optional<double> endTime;
-			bool isHold() const { return endTime.has_value() && *endTime > time; }
+			bool isHold() const
+			{
+				return endTime.has_value() && *endTime > time;
+			}
 		};
 
 		struct Beatmap
@@ -52,7 +58,8 @@ namespace ForeignChart::detail
 				if (i == text.size() || text[i] == '\n' || text[i] == '\r')
 				{
 					lines.emplace_back(text.substr(start, i - start));
-					if (i < text.size() && text[i] == '\r' && i + 1 < text.size() && text[i + 1] == '\n') ++i;
+					if (i < text.size() && text[i] == '\r' && i + 1 < text.size() && text[i + 1] == '\n')
+						++i;
 					start = i + 1;
 				}
 			}
@@ -77,7 +84,8 @@ namespace ForeignChart::detail
 		std::string StripComment(const std::string& line)
 		{
 			const std::string trimmed = Trim(line);
-			if (trimmed.rfind("//", 0) == 0) return {};
+			if (trimmed.rfind("//", 0) == 0)
+				return {};
 			return trimmed;
 		}
 
@@ -93,8 +101,10 @@ namespace ForeignChart::detail
 				auto parts = SplitComma(line);
 				for (auto& p : parts)
 				{
-					if (!p.empty() && p.front() == '"') p.erase(p.begin());
-					if (!p.empty() && p.back() == '"') p.pop_back();
+					if (!p.empty() && p.front() == '"')
+						p.erase(p.begin());
+					if (!p.empty() && p.back() == '"')
+						p.pop_back();
 					p = Trim(p);
 				}
 				if (parts.size() >= 3 && (parts[0] == "0" || parts[0] == "Background") && !parts[2].empty())
@@ -111,21 +121,28 @@ namespace ForeignChart::detail
 			for (const auto& line : lines)
 			{
 				const auto parts = SplitComma(line);
-				if (parts.size() < 2) continue;
+				if (parts.size() < 2)
+					continue;
 				const double time = ParseDouble(parts[0], 0.0) + shift;
 				const double beatLength = ParseDouble(parts[1], 0.0);
-				if (beatLength <= 0) continue; // inherited point: scroll speed only
+				if (beatLength <= 0)
+					continue; // inherited point: scroll speed only
 				const int32 meter = parts.size() > 2 ? ParseIntTrunc(parts[2], 4) : 4;
 				points.push_back({ time, beatLength, std::max(1, meter) });
 			}
-			std::stable_sort(points.begin(), points.end(), [](const TimingPoint& a, const TimingPoint& b) { return a.time < b.time; });
+			std::stable_sort(points.begin(), points.end(), [](const TimingPoint& a, const TimingPoint& b)
+							 {
+								 return a.time < b.time;
+							 });
 
 			// Two tempo marks on the same millisecond: the later one wins, as it does in osu!.
 			std::vector<TimingPoint> deduped;
 			for (const auto& p : points)
 			{
-				if (!deduped.empty() && std::abs(deduped.back().time - p.time) < 1e-6) deduped.back() = p;
-				else deduped.push_back(p);
+				if (!deduped.empty() && std::abs(deduped.back().time - p.time) < 1e-6)
+					deduped.back() = p;
+				else
+					deduped.push_back(p);
 			}
 			return deduped;
 		}
@@ -136,7 +153,8 @@ namespace ForeignChart::detail
 			for (const auto& line : lines)
 			{
 				const auto parts = SplitComma(line);
-				if (parts.size() < 4) continue;
+				if (parts.size() < 4)
+					continue;
 				const int32 x = ParseIntTrunc(parts[0], 0);
 				const double time = ParseDouble(parts[2], 0.0) + shift;
 				const int32 typeFlags = ParseIntTrunc(parts[3], 0);
@@ -148,14 +166,15 @@ namespace ForeignChart::detail
 					const std::string extras = parts.size() > 5 ? parts[5] : "";
 					const std::string endRaw = extras.substr(0, extras.find(':'));
 					const double endValue = ParseDouble(endRaw, 0.0);
-					if (endValue > 0) obj.endTime = endValue + shift;
+					if (endValue > 0)
+						obj.endTime = endValue + shift;
 				}
 				objects.push_back(obj);
 			}
 			std::stable_sort(objects.begin(), objects.end(), [](const HitObject& a, const HitObject& b)
-			{
-				return a.time != b.time ? a.time < b.time : a.column < b.column;
-			});
+							 {
+								 return a.time != b.time ? a.time < b.time : a.column < b.column;
+							 });
 			return objects;
 		}
 
@@ -166,7 +185,8 @@ namespace ForeignChart::detail
 			{
 				static const std::regex versionRe{ R"(osu file format v(\d+))", std::regex::icase };
 				std::smatch m;
-				if (std::regex_search(text, m, versionRe)) beatmap.formatVersion = std::stoi(m[1].str());
+				if (std::regex_search(text, m, versionRe))
+					beatmap.formatVersion = std::stoi(m[1].str());
 			}
 			const int32 shift = beatmap.formatVersion <= kEarlyVersionMax ? kEarlyVersionTimingOffset : 0;
 
@@ -178,7 +198,8 @@ namespace ForeignChart::detail
 			for (const auto& line : SplitLines(text))
 			{
 				const std::string stripped = StripComment(line);
-				if (stripped.empty()) continue;
+				if (stripped.empty())
+					continue;
 				std::smatch m;
 				if (std::regex_match(stripped, m, sectionRe))
 				{
@@ -190,12 +211,16 @@ namespace ForeignChart::detail
 					const size_t colon = stripped.find(':');
 					const std::string key = Trim(std::string_view{ stripped }.substr(0, colon));
 					const std::string value = colon == std::string::npos ? "" : Trim(std::string_view{ stripped }.substr(colon + 1));
-					auto& target = section == "general" ? general : section == "metadata" ? metadata : difficulty;
+					auto& target = section == "general" ? general : section == "metadata" ? metadata
+																						  : difficulty;
 					target[key] = value;
 				}
-				else if (section == "timingpoints") timingLines.push_back(stripped);
-				else if (section == "hitobjects") objectLines.push_back(stripped);
-				else if (section == "events") eventLines.push_back(stripped);
+				else if (section == "timingpoints")
+					timingLines.push_back(stripped);
+				else if (section == "hitobjects")
+					objectLines.push_back(stripped);
+				else if (section == "events")
+					eventLines.push_back(stripped);
 			}
 
 			const auto get = [](const std::map<std::string, std::string>& m, const char* key) -> std::string
@@ -211,7 +236,8 @@ namespace ForeignChart::detail
 			}
 			beatmap.audioFilename = get(general, "AudioFilename");
 			beatmap.previewTime = ParseIntTrunc(get(general, "PreviewTime"), -1);
-			if (shift && beatmap.previewTime >= 0) beatmap.previewTime += shift;
+			if (shift && beatmap.previewTime >= 0)
+				beatmap.previewTime += shift;
 
 			beatmap.title = get(metadata, "Title");
 			beatmap.titleUnicode = get(metadata, "TitleUnicode");
@@ -224,8 +250,10 @@ namespace ForeignChart::detail
 			beatmap.timingPoints = ParseTimingPoints(timingLines, shift);
 			beatmap.hitObjects = ParseHitObjects(objectLines, beatmap.keys, shift);
 
-			if (beatmap.hitObjects.empty()) throw std::runtime_error("\"" + FileNameUtf8(path) + "\" has no notes");
-			if (beatmap.timingPoints.empty()) throw std::runtime_error("\"" + FileNameUtf8(path) + "\" has no uninherited timing point");
+			if (beatmap.hitObjects.empty())
+				throw std::runtime_error("\"" + FileNameUtf8(path) + "\" has no notes");
+			if (beatmap.timingPoints.empty())
+				throw std::runtime_error("\"" + FileNameUtf8(path) + "\" has no uninherited timing point");
 			return beatmap;
 		}
 
@@ -252,7 +280,8 @@ namespace ForeignChart::detail
 				const auto& points = beatmap.timingPoints;
 				const auto& first = points.front();
 				double earliestObject = beatmap.hitObjects.front().time;
-				for (const auto& obj : beatmap.hitObjects) earliestObject = std::min(earliestObject, obj.time);
+				for (const auto& obj : beatmap.hitObjects)
+					earliestObject = std::min(earliestObject, obj.time);
 				const double earliest = std::min(earliestObject, first.time);
 
 				const double measureMs = first.beatLength * first.meter;
@@ -283,8 +312,10 @@ namespace ForeignChart::detail
 				const Segment* chosen = &segments.front();
 				for (const auto& segment : segments)
 				{
-					if (segment.time <= time + 1e-6) chosen = &segment;
-					else break;
+					if (segment.time <= time + 1e-6)
+						chosen = &segment;
+					else
+						break;
 				}
 				const double raw = static_cast<double>(chosen->pulse) + (time - chosen->time) * chosen->bpm / 60000.0 * kResolution;
 				return std::max<int64>(0, SnapPulse(raw).first);
@@ -300,7 +331,8 @@ namespace ForeignChart::detail
 				for (size_t i = 1; i < segments.size(); ++i)
 				{
 					const auto& segment = segments[i];
-					if (segment.meter == meter) continue;
+					if (segment.meter == meter)
+						continue;
 					const int64 measurePulses = kResolution * meter;
 					while (measureStart + measurePulses <= segment.pulse)
 					{
@@ -332,7 +364,8 @@ namespace ForeignChart::detail
 				if (std::regex_search(name, m, re))
 				{
 					const int32 value = std::stoi(m[1].str());
-					if (1 <= value && value <= 20) return value;
+					if (1 <= value && value <= 20)
+						return value;
 				}
 			}
 			return none;
@@ -341,28 +374,48 @@ namespace ForeignChart::detail
 		Optional<int32> KeywordRank(const std::string& name)
 		{
 			static const std::vector<std::pair<std::string, int32>> keywords{
-				{ "beginner", 0 }, { "ez", 0 }, { "easy", 0 },
-				{ "basic", 1 }, { "nm", 1 }, { "normal", 1 },
-				{ "advanced", 2 }, { "hd", 2 }, { "hard", 2 },
-				{ "hyper", 3 }, { "mx", 3 }, { "insane", 3 }, { "another", 3 },
-				{ "sc", 4 }, { "expert", 4 }, { "extra", 4 }, { "exhaust", 4 }, { "extreme", 4 },
-				{ "lunatic", 5 }, { "maximum", 5 },
-				{ "overjoy", 6 }, { "gravity", 6 }, { "heavenly", 6 },
+				{ "beginner", 0 },
+				{ "ez", 0 },
+				{ "easy", 0 },
+				{ "basic", 1 },
+				{ "nm", 1 },
+				{ "normal", 1 },
+				{ "advanced", 2 },
+				{ "hd", 2 },
+				{ "hard", 2 },
+				{ "hyper", 3 },
+				{ "mx", 3 },
+				{ "insane", 3 },
+				{ "another", 3 },
+				{ "sc", 4 },
+				{ "expert", 4 },
+				{ "extra", 4 },
+				{ "exhaust", 4 },
+				{ "extreme", 4 },
+				{ "lunatic", 5 },
+				{ "maximum", 5 },
+				{ "overjoy", 6 },
+				{ "gravity", 6 },
+				{ "heavenly", 6 },
 			};
 			const std::string lowered = ToLowerAscii(name);
 			Optional<int32> best;
 			for (const auto& [keyword, rank] : keywords)
 			{
-				if (lowered.find(keyword) != std::string::npos && (!best || rank > *best)) best = rank;
+				if (lowered.find(keyword) != std::string::npos && (!best || rank > *best))
+					best = rank;
 			}
 			return best;
 		}
 
 		int32 SlotForLevel(int32 level)
 		{
-			if (level <= 6) return 0;
-			if (level <= 12) return 1;
-			if (level <= 16) return 2;
+			if (level <= 6)
+				return 0;
+			if (level <= 12)
+				return 1;
+			if (level <= 16)
+				return 2;
 			return 3;
 		}
 	}
@@ -373,13 +426,15 @@ namespace ForeignChart::detail
 		std::string head(16384, '\0');
 		{
 			std::ifstream ifs(std::filesystem::path(Unicode::ToWstring(path)), std::ios::binary);
-			if (!ifs) return false;
+			if (!ifs)
+				return false;
 			ifs.read(head.data(), static_cast<std::streamsize>(head.size()));
 			head.resize(static_cast<size_t>(ifs.gcount()));
 		}
 		static const std::regex modeRe{ R"((^|[\r\n])\s*Mode\s*:\s*(\d+))" };
 		std::smatch m;
-		if (std::regex_search(head, m, modeRe)) return std::stoi(m[2].str()) == kManiaMode;
+		if (std::regex_search(head, m, modeRe))
+			return std::stoi(m[2].str()) == kManiaMode;
 		return false; // no Mode line means osu!standard
 	}
 
@@ -390,10 +445,12 @@ namespace ForeignChart::detail
 
 		GriddedChart chart;
 		chart.offsetMs = timing.offsetMs;
-		for (const auto& segment : timing.segments) chart.bpms[segment.pulse] = segment.bpm;
+		for (const auto& segment : timing.segments)
+			chart.bpms[segment.pulse] = segment.bpm;
 		for (const auto& segment : timing.segments)
 		{
-			if (std::find(chart.displayBpms.begin(), chart.displayBpms.end(), segment.bpm) == chart.displayBpms.end()) chart.displayBpms.push_back(segment.bpm);
+			if (std::find(chart.displayBpms.begin(), chart.displayBpms.end(), segment.bpm) == chart.displayBpms.end())
+				chart.displayBpms.push_back(segment.bpm);
 		}
 		std::sort(chart.displayBpms.begin(), chart.displayBpms.end());
 		chart.timeSigs = timing.timeSigs.empty() ? decltype(chart.timeSigs){ { 0, 4, 4 } } : timing.timeSigs;
@@ -401,10 +458,12 @@ namespace ForeignChart::detail
 		const auto mapping = LaneMap(beatmap.keys);
 		for (const auto& obj : beatmap.hitObjects)
 		{
-			if (obj.column >= static_cast<int32>(mapping.size())) continue;
+			if (obj.column >= static_cast<int32>(mapping.size()))
+				continue;
 			const int64 start = timing.pulse(obj.time);
 			int64 length = 0;
-			if (obj.isHold()) length = std::max<int64>(0, timing.pulse(*obj.endTime) - start);
+			if (obj.isHold())
+				length = std::max<int64>(0, timing.pulse(*obj.endTime) - start);
 			PlaceNote(chart, mapping[obj.column], start, length);
 		}
 		ClipHolds(chart);
@@ -428,7 +487,9 @@ namespace ForeignChart::detail
 		else if (const auto keyword = KeywordRank(beatmap.version))
 		{
 			chart.level = densityLevel;
-			chart.slot = *keyword <= 1 ? 0 : *keyword == 2 ? 1 : *keyword == 3 ? 2 : 3;
+			chart.slot = *keyword <= 1 ? 0 : *keyword == 2 ? 1
+										 : *keyword == 3   ? 2
+														   : 3;
 		}
 		else
 		{
@@ -442,8 +503,10 @@ namespace ForeignChart::detail
 		chart.difficultyName = beatmap.version;
 		chart.keys = beatmap.keys;
 		chart.source = "osu!mania";
-		if (!beatmap.titleUnicode.empty() && beatmap.title != beatmap.titleUnicode) chart.titleTranslit = beatmap.title;
-		if (!beatmap.artistUnicode.empty() && beatmap.artist != beatmap.artistUnicode) chart.artistTranslit = beatmap.artist;
+		if (!beatmap.titleUnicode.empty() && beatmap.title != beatmap.titleUnicode)
+			chart.titleTranslit = beatmap.title;
+		if (!beatmap.artistUnicode.empty() && beatmap.artist != beatmap.artistUnicode)
+			chart.artistTranslit = beatmap.artist;
 		chart.audioFilename = beatmap.audioFilename;
 		chart.jacketFilename = beatmap.background;
 		chart.previewMs = std::max(0, beatmap.previewTime);

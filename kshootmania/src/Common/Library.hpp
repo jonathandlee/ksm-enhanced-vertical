@@ -16,9 +16,9 @@ namespace Library
 	struct Info
 	{
 		Kind kind = Kind::Ksm;
-		String id;          // "ksm", "osu", "etterna", "stepmania"
+		String id; // "ksm", "osu", "etterna", "stepmania"
 		String displayName;
-		FilePath rootPath;  // full path, trailing '/'
+		FilePath rootPath;			// full path, trailing '/'
 		bool rootIsPackage = false; // osu!'s Songs folder holds beatmap sets directly, so it is one package
 	};
 
