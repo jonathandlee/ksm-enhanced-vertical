@@ -1,0 +1,4 @@
+# The sources follow upstream's hand formatting. Reformatting whole files buries real changes in
+# whitespace noise and makes upstream merges conflict everywhere, so clang-format is disabled here.
+DisableFormat: true
+SortIncludes: Never
