@@ -13,6 +13,9 @@ namespace SkinPreset
         Settings g_settings;
         HashTable<String, FilePath> g_resolved;
         Array<String> g_keys;
+        HashSet<String> g_randomNames;
+        HashTable<String, FilePath> g_lastRandomPick;
+        constexpr std::array<StringView, 6> kImageExtensions{ U"png", U"jpg", U"jpeg", U"gif", U"bmp", U"webp" };
         template<class T> T Read(const JSON& json, StringView key, const T& fallback)
         {
             return json.isObject() && json.hasElement(key) ? json[key].getOr<T>(fallback) : fallback;
@@ -44,6 +47,51 @@ namespace SkinPreset
             if (!FileSystem::IsFile(path) && !Image{ size, Palette::Yellow }.save(path))
                 throw Error{ U"Cannot create missing-image placeholder: " + String{ name } };
             return path;
+        }
+        // "bg2.jpg" -> "bg2"
+        String StemOf(StringView name)
+        {
+            const size_t slash = name.lastIndexOf(U'/');
+            const size_t dot = name.lastIndexOf(U'.');
+            if (dot == StringView::npos || (slash != StringView::npos && dot < slash)) return String{ name };
+            return String{ name.substr(0, dot) };
+        }
+        // Exact file, else the same name with any other image extension (bg2.jpg -> bg2.png).
+        FilePath FindImage(StringView folder, StringView name)
+        {
+            const auto exact = FileSystem::PathAppend(Root(), folder + U"/" + name);
+            if (FileSystem::IsFile(exact)) return exact;
+            const String stem = StemOf(name);
+            for (const auto ext : kImageExtensions)
+            {
+                const auto candidate = FileSystem::PathAppend(Root(), folder + U"/" + stem + U"." + ext);
+                if (FileSystem::IsFile(candidate)) return candidate;
+            }
+            return {};
+        }
+        // A "<stem>_random/" folder (e.g. imgs/<skin>/bg2_random/) supplies a random image per reroll.
+        FilePath PickRandomImage(StringView folder, StringView name)
+        {
+            const auto dir = FileSystem::PathAppend(Root(), folder + U"/" + StemOf(name) + U"_random/");
+            if (!FileSystem::IsDirectory(dir)) return {};
+            Array<FilePath> candidates;
+            for (const auto& path : FileSystem::DirectoryContents(dir, Recursive::No))
+                if (FileSystem::IsFile(path) && IsImage(path) && ImageDecoder::GetImageInfo(path)) candidates << path;
+            if (candidates.isEmpty()) return {};
+            // Avoid showing the same image twice in a row when there is a choice.
+            if (candidates.size() > 1)
+                if (const auto it = g_lastRandomPick.find(String{ name }); it != g_lastRandomPick.end())
+                    candidates.remove(it->second);
+            return candidates.choice();
+        }
+    }
+
+    void RerollRandomImages()
+    {
+        for (const auto& name : g_randomNames)
+        {
+            noco::Asset::UnloadTexture(U"imgs/" + name);
+            if (TextureAsset::IsRegistered(name)) TextureAsset::Release(name);
         }
     }
 
@@ -139,11 +187,24 @@ namespace SkinPreset
     FilePath Resolve(FilePathView logicalPath)
     {
         const String name = LogicalName(logicalPath);
+        // Random picks bypass the cache so RerollRandomImages() can choose again.
+        for (const auto& folder : { g_settings.folder, String{ U"default" } })
+        {
+            if (const auto random = PickRandomImage(folder, name); !random.isEmpty())
+            {
+                g_randomNames.insert(name);
+                g_lastRandomPick[name] = random;
+                return random;
+            }
+            if (folder != U"default" && !FindImage(folder, name).isEmpty()) break; // skin's own file beats default's random set
+        }
         if (const auto it = g_resolved.find(name); it != g_resolved.end()) return it->second;
-        const auto base = FileSystem::PathAppend(Root(), U"default/" + name);
-        const auto selected = FileSystem::PathAppend(Root(), g_settings.folder + U"/" + name);
+        FilePath base = FindImage(U"default", name);
+        FilePath selected = FindImage(g_settings.folder, name);
         // Unknown legacy background/icon names retain the original caller's fallback.
-        if (!FileSystem::IsFile(base) && !FileSystem::IsFile(selected)) return selected;
+        if (base.isEmpty() && selected.isEmpty()) return FileSystem::PathAppend(Root(), g_settings.folder + U"/" + name);
+        if (base.isEmpty()) base = FileSystem::PathAppend(Root(), U"default/" + name);
+        if (selected.isEmpty()) selected = FileSystem::PathAppend(Root(), g_settings.folder + U"/" + name);
         FilePath path;
         // Decode validation also treats corrupt images as missing, once per selection.
         if (FileSystem::IsFile(selected) && !Image{ selected }.isEmpty()) path = selected;
