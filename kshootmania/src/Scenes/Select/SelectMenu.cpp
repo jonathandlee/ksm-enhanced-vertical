@@ -12,6 +12,8 @@
 #include "MenuItem/SelectMenuLevelSectionItem.hpp"
 #include "MenuItem/SelectMenuLevelSongItem.hpp"
 #include "MenuItem/SelectMenuBackToFolderItem.hpp"
+#include "MenuItem/SelectMenuLibraryFolderItem.hpp"
+#include "Common/Library.hpp"
 #include "HighScore/KscKey.hpp"
 #include "Common/FsUtils.hpp"
 #include "Common/Encoding.hpp"
@@ -298,7 +300,7 @@ namespace
 		};
 
 		Array<FilePath> chartFilePaths;
-		if (FileSystem::IsFile(fullPath) && FsUtils::HasChartExtension(fullPath))
+		if (FsUtils::ChartFileExists(fullPath) && FsUtils::HasChartExtension(fullPath))
 		{
 			chartFilePaths.emplace_back(fullPath);
 			result.sortKey = FileSystem::FileName(fullPath).lowercased();
@@ -475,6 +477,11 @@ bool SelectMenu::openDirectory(FilePathView directoryPath, PlaySeYN playSe, Refr
 	}
 
 	applySearchModeFilter();
+
+	if (!directoryPath.empty() && Library::IsMultiLibrary())
+	{
+		setCurrentLibrary(Library::LibraryForPath(FileSystem::FullPath(directoryPath)).id);
+	}
 
 	if (saveToConfigIni)
 	{
@@ -714,6 +721,8 @@ SelectMenu::SelectMenu(
 			.fnOpenFavoriteFolder = [this](FilePath specialPath) { openFavoriteFolder(specialPath, PlaySeYN::Yes); },
 			.fnOpenCoursesFolder = [this]() { openCoursesFolder(PlaySeYN::Yes); },
 			.fnCloseFolder = [this]() { closeFolder(PlaySeYN::Yes); },
+			.fnOpenLibrary = [this](String libraryId) { openLibrary(libraryId, PlaySeYN::Yes); },
+			.fnCloseLibrary = [this]() { closeLibrary(PlaySeYN::Yes); },
 			.fnExitSearch = std::move(fnExitSearchMode),
 			.fnMoveToNextSubDirSection = [this]() { moveToNextSubDirSection(); },
 			.fnMoveToPrevSubDirSection = [this]() { moveToPrevSubDirSection(); },
@@ -787,6 +796,16 @@ SelectMenu::SelectMenu(
 	const int32 loadedCursor = ConfigIni::GetInt(ConfigIni::Key::kSelectSongIndex);
 	const int32 loadedDifficultyIdx = ConfigIni::GetInt(ConfigIni::Key::kSelectDifficulty);
 
+	// Restore the open library (only meaningful when osu!/Etterna/StepMania folders are configured)
+	if (Library::IsMultiLibrary())
+	{
+		const String savedLibrary{ ConfigIni::GetString(ConfigIni::Key::kSelectLibrary) };
+		if (const auto library = Library::FindById(savedLibrary); library && !library->rootIsPackage)
+		{
+			m_currentLibraryId = library->id;
+		}
+	}
+
 	// 前回開いていたフォルダを復元
 	const StringView savedDirectory = ConfigIni::GetString(ConfigIni::Key::kSelectDirectory);
 	bool openSuccess = false;
@@ -822,7 +841,7 @@ SelectMenu::SelectMenu(
 		if (!isInvalidPath)
 		{
 			// songsフォルダからの相対パスなので結合
-			const FilePath fullPath = FileSystem::PathAppend(FsUtils::SongsDirectoryPath(), savedDirectory);
+			const FilePath fullPath = FsUtils::FullPathFromSongsRelative(savedDirectory);
 			openSuccess = openDirectory(fullPath, PlaySeYN::No);
 		}
 	}
@@ -1096,7 +1115,18 @@ void SelectMenu::closeFolder(PlaySeYN playSe)
 	}
 
 	// 元のパスを取得しておく
-	const String originalFullPath = m_folderState.fullPath;
+	String originalFullPath = m_folderState.fullPath;
+
+	// osu!'s Songs folder is the whole library, so closing it leaves the library too
+	if (Library::IsMultiLibrary() && m_folderState.folderType == SelectFolderState::kDirectory)
+	{
+		const auto library = Library::LibraryForPath(originalFullPath);
+		if (library.rootIsPackage)
+		{
+			setCurrentLibrary(U"");
+			originalFullPath = Library::SpecialPath(library);
+		}
+	}
 
 	// ルートディレクトリを開く
 	openDirectory(U"", PlaySeYN::No);
@@ -1719,16 +1749,8 @@ bool SelectMenu::openAllFolderWithNameSort()
 	// TODO: Insert course items
 
 	// 全フォルダの楽曲を収集
-	const Array<FilePath> searchPaths = {
-		FsUtils::SongsDirectoryPath(), // TODO: 設定可能にする
-	};
-
-	// 全フォルダを取得
-	Array<FilePath> allFolderDirectories;
-	for (const auto& path : searchPaths)
-	{
-		allFolderDirectories.append(GetSubDirectories(path).map([](FilePathView p) { return FileSystem::FullPath(p); }));
-	}
+	// 全フォルダを取得 (every library's packages)
+	const Array<FilePath> allFolderDirectories = Library::AllPackageDirectories();
 
 	Array<SelectCachedSongEntry> allSongEntries;
 
@@ -1780,16 +1802,8 @@ bool SelectMenu::openAllFolderWithLevelSort()
 	std::array<Array<LevelSortChartFileInfo>, kNumLevels> chartsByLevel;
 
 	// 全フォルダの楽曲を収集
-	const Array<FilePath> searchPaths = {
-		FsUtils::SongsDirectoryPath(), // TODO: 設定可能にする
-	};
-
-	// 全フォルダを取得
-	Array<FilePath> allFolderDirectories;
-	for (const auto& path : searchPaths)
-	{
-		allFolderDirectories.append(GetSubDirectories(path).map([](FilePathView p) { return FileSystem::FullPath(p); }));
-	}
+	// 全フォルダを取得 (every library's packages)
+	const Array<FilePath> allFolderDirectories = Library::AllPackageDirectories();
 
 	for (const auto& folderDirectory : allFolderDirectories)
 	{
@@ -1898,9 +1912,9 @@ bool SelectMenu::openFavoriteFolderWithNameSort(FilePathView specialPath)
 
 	for (const String& relativePath : songPaths)
 	{
-		const FilePath fullPath = FileSystem::PathAppend(songsDir, relativePath);
+		const FilePath fullPath = FsUtils::FullPathFromSongsRelative(relativePath);
 
-		if (FileSystem::IsDirectory(fullPath) || (FileSystem::IsFile(fullPath) && FsUtils::HasChartExtension(fullPath)))
+		if (FileSystem::IsDirectory(fullPath) || (FsUtils::ChartFileExists(fullPath) && FsUtils::HasChartExtension(fullPath)))
 		{
 			if (auto favoriteSongInfo = LoadFavoriteSongInfo(fullPath))
 			{
@@ -1969,9 +1983,9 @@ bool SelectMenu::openFavoriteFolderWithLevelSort(FilePathView specialPath)
 	// 各エントリから譜面情報を取得
 	for (const String& relativePath : songPaths)
 	{
-		const FilePath fullPath = FileSystem::PathAppend(songsDir, relativePath);
+		const FilePath fullPath = FsUtils::FullPathFromSongsRelative(relativePath);
 
-		if (FileSystem::IsDirectory(fullPath) || (FileSystem::IsFile(fullPath) && FsUtils::HasChartExtension(fullPath)))
+		if (FileSystem::IsDirectory(fullPath) || (FsUtils::ChartFileExists(fullPath) && FsUtils::HasChartExtension(fullPath)))
 		{
 			if (auto favoriteSongInfo = LoadFavoriteSongInfo(fullPath))
 			{
@@ -2146,9 +2160,6 @@ bool SelectMenu::openCoursesFolderWithLevelSort()
 
 Array<FilePath> SelectMenu::getSortedFolderPaths() const
 {
-	const Array<FilePath> searchPaths = {
-		FsUtils::SongsDirectoryPath(), // TODO: 設定可能にする
-	};
 
 	// "All"フォルダを追加
 	Array<FilePath> folderPaths;
@@ -2172,11 +2183,23 @@ Array<FilePath> SelectMenu::getSortedFolderPaths() const
 		folderPaths.emplace_back(SelectMenuCoursesFolderItem::kCoursesFolderSpecialPath);
 	}
 
-	// 通常ディレクトリを取得してソート
+	// With osu!/Etterna/StepMania configured, libraries are a level above the packages:
+	// list every library, then the packages of the open one.
 	Array<FilePath> normalDirectories;
-	for (const auto& path : searchPaths)
+	if (Library::IsMultiLibrary())
 	{
-		normalDirectories.append(GetSubDirectories(path).map([](FilePathView p) { return FileSystem::FullPath(p); }));
+		for (const auto& library : Library::All())
+		{
+			folderPaths.push_back(Library::SpecialPath(library));
+		}
+		if (const auto library = Library::FindById(m_currentLibraryId); library && !library->rootIsPackage)
+		{
+			normalDirectories = Library::PackageDirectories(*library);
+		}
+	}
+	else
+	{
+		normalDirectories = Library::PackageDirectories(Library::All().front());
 	}
 
 	// フォルダ名(小文字変換)の昇順でソート
@@ -2228,7 +2251,7 @@ void SelectMenu::addOtherFolderItemsRotated()
 		}
 
 		const auto& folderPath = folderPaths[rotatedIdx];
-		m_menu.push_back(CreateFolderMenuItem(folderPath, IsCurrentFolderYN::No));
+		m_menu.push_back(createFolderItem(folderPath));
 	}
 }
 
@@ -2245,7 +2268,101 @@ void SelectMenu::addOtherFolderItemsSimple()
 			continue;
 		}
 
-		m_menu.push_back(CreateFolderMenuItem(folderPath, IsCurrentFolderYN::No));
+		m_menu.push_back(createFolderItem(folderPath));
+	}
+}
+
+std::unique_ptr<ISelectMenuItem> SelectMenu::createFolderItem(FilePathView folderPath) const
+{
+	if (Library::IsSpecialPath(folderPath))
+	{
+		if (const auto library = Library::FromSpecialPath(folderPath))
+		{
+			const bool isCurrent = library->id == m_currentLibraryId;
+			return std::make_unique<SelectMenuLibraryFolderItem>(isCurrent ? IsCurrentFolderYN::Yes : IsCurrentFolderYN::No, *library);
+		}
+	}
+	return CreateFolderMenuItem(folderPath, IsCurrentFolderYN::No);
+}
+
+void SelectMenu::setCurrentLibrary(StringView libraryId)
+{
+	m_currentLibraryId = libraryId;
+	ConfigIni::SetString(ConfigIni::Key::kSelectLibrary, libraryId);
+}
+
+void SelectMenu::openLibrary(StringView libraryId, PlaySeYN playSe)
+{
+	const auto library = Library::FindById(libraryId);
+	if (!library)
+	{
+		return;
+	}
+
+	if (library->rootIsPackage)
+	{
+		// osu!: the Songs folder is the one package, so open it directly
+		openDirectory(FileSystem::FullPath(library->rootPath), playSe);
+		return;
+	}
+
+	if (playSe)
+	{
+		m_folderSelectSe.play();
+	}
+
+	setCurrentLibrary(library->id);
+	openDirectory(U"", PlaySeYN::No, RefreshSongPreviewYN::No, SaveToConfigIniYN::No);
+
+	// Put the cursor on the library's first package
+	const Array<FilePath> packages = Library::PackageDirectories(*library);
+	setCursorToItemByFullPath(packages.isEmpty() ? Library::SpecialPath(*library) : packages.front());
+
+	ConfigIni::SetString(ConfigIni::Key::kSelectDirectory, U"");
+	ConfigIni::SetInt(ConfigIni::Key::kSelectSongIndex, m_menu.cursor());
+
+	resetSongInfoTextDisplayTimer();
+	refreshContentCanvasParams();
+	refreshSongPreview();
+}
+
+void SelectMenu::closeLibrary(PlaySeYN playSe)
+{
+	if (playSe)
+	{
+		m_folderSelectSe.play();
+	}
+
+	const String previous = m_currentLibraryId;
+	setCurrentLibrary(U"");
+	openDirectory(U"", PlaySeYN::No, RefreshSongPreviewYN::No, SaveToConfigIniYN::No);
+	if (const auto library = Library::FindById(previous))
+	{
+		setCursorToItemByFullPath(Library::SpecialPath(*library));
+	}
+
+	ConfigIni::SetString(ConfigIni::Key::kSelectDirectory, U"");
+	ConfigIni::SetInt(ConfigIni::Key::kSelectSongIndex, m_menu.cursor());
+
+	resetSongInfoTextDisplayTimer();
+	refreshContentCanvasParams();
+	refreshSongPreview();
+}
+
+bool SelectMenu::canGoUp() const
+{
+	return isFolderOpen() || (Library::IsMultiLibrary() && !m_currentLibraryId.isEmpty());
+}
+
+void SelectMenu::goUp(PlaySeYN playSe)
+{
+	if (isFolderOpen())
+	{
+		closeFolder(playSe);
+	}
+	else if (canGoUp())
+	{
+		closeLibrary(playSe);
 	}
 }
 

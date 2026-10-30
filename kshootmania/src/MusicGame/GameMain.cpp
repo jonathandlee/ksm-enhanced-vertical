@@ -46,9 +46,12 @@ namespace MusicGame
 		// 譜面データを読み込み、Turn変換とPlayModeフィルタを適用
 		kson::ChartData LoadChartDataWithTurn(const GameCreateInfo& createInfo, NoteArrangement* pNoteArrangementOut, Optional<SRandomFXAudioMapping>* pSRandomFXAudioMappingOut, std::array<HashSet<kson::Pulse>, kson::kNumLaserLanesSZ>* pLaserCurvedPulses)
 		{
-			auto chartData = FsUtils::HasKsonExtension(createInfo.chartFilePath)
-				? kson::LoadKsonChartData(createInfo.chartFilePath.toUTF8())
-				: kson::LoadKshChartData(createInfo.chartFilePath.toUTF8());
+			auto chartData = ChartIO::LoadChartData(createInfo.chartFilePath);
+
+			// hacky solution for default bpm
+			if (chartData.beat.bpm.empty()) {
+				chartData.beat.bpm.emplace(0, 120.0);
+			}
 
 			// Turn変換を適用
 			pNoteArrangementOut->turnTable = MakeTurnTable(createInfo.playOption.turnMode);

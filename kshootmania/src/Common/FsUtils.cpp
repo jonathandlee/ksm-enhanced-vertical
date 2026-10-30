@@ -1,4 +1,6 @@
 #include "FsUtils.hpp"
+#include "Common/Library.hpp"
+#include "ForeignChart/ForeignChart.hpp"
 
 namespace FsUtils {
 #if defined(__linux__)
@@ -60,13 +62,16 @@ FilePath ScoreDirectoryPath() {
 }
 
 FilePath SongsDirectoryPath() {
-  // set in config.ini
-  const StringView customDir =
+  // set in config.ini. DO NOT CHANGE WHILE GMAE IS URNNING!!!!!!!
+  static const FilePath s_sondsDir = [] {
+    const StringView customDir =
       ConfigIni::GetString(ConfigIni::Key::kSongsDirectory);
-  if (!customDir.empty() && FileSystem::IsDirectory(customDir)) {
-    return FileSystem::FullPath(customDir);
-  }
-  return FileSystem::PathAppend(AppDataDirectoryPath(), U"songs");
+      if (!customDir.empty() && FileSystem::IsDirectory(customDir)) {
+        return FileSystem::FullPath(customDir);
+      } 
+      return FileSystem::PathAppend(AppDataDirectoryPath(), U"songs");
+  }();
+  return s_sondsDir;
 }
 
 FilePath SongsDefaultDirectoryPath() {
@@ -106,14 +111,40 @@ String EliminateExtension(FilePathView path) {
 }
 
 String RelativePathFromSongsDir(FilePathView fullPath) {
+  // Foreign libraries get an "@<id>/" prefix so their scores and caches never
+  // collide with KSM paths; KSM paths stay unprefixed so existing scores load.
+  if (const auto library = Library::ForeignLibraryForPath(fullPath)) {
+    String path{fullPath};
+    path.replace(U'\\', U'/');
+    const String rest = path.size() > library->rootPath.size()
+                            ? path.substr(library->rootPath.size())
+                            : String{};
+    return Library::kRelativePathPrefix + library->id + U"/" + rest;
+  }
   return FileSystem::RelativePath(fullPath, SongsDirectoryPath());
+}
+
+FilePath FullPathFromSongsRelative(StringView relativePath) {
+  if (!relativePath.isEmpty() &&
+      relativePath[0] == Library::kRelativePathPrefix) {
+    const size_t slash = relativePath.indexOf(U'/');
+    const StringView id = relativePath.substr(
+        1, slash == StringView::npos ? StringView::npos : slash - 1);
+    if (const auto library = Library::FindById(id)) {
+      const StringView rest = slash == StringView::npos
+                                  ? StringView{}
+                                  : relativePath.substr(slash + 1);
+      return library->rootPath + rest;
+    }
+  }
+  return FileSystem::PathAppend(SongsDirectoryPath(), relativePath);
 }
 
 Array<FilePath> GetChartFilePathsPreferringKson(FilePathView directoryPath) {
   const Array<FilePath> allChartPaths =
       FileSystem::DirectoryContents(directoryPath, Recursive::No)
           .filter([](FilePathView p) {
-            return FileSystem::IsFile(p) && HasChartExtension(p);
+            return FileSystem::IsFile(p) && HasKsmChartExtension(p);
           });
 
   Array<FilePath> result;
@@ -133,12 +164,24 @@ Array<FilePath> GetChartFilePathsPreferringKson(FilePathView directoryPath) {
     }
   }
 
+  // osu!mania beatmaps and StepMania/Etterna charts (one entry per chart).
+  result.append(ForeignChart::ListCharts(directoryPath));
+
   return result;
 }
 
-bool HasChartExtension(FilePathView filePath) {
+bool HasKsmChartExtension(FilePathView filePath) {
   const String ext = FileSystem::Extension(filePath);
   return ext == kKSHExtension || ext == kKSONExtension;
+}
+
+bool HasChartExtension(FilePathView filePath) {
+  return HasKsmChartExtension(filePath) ||
+         ForeignChart::IsForeignChart(filePath);
+}
+
+bool ChartFileExists(FilePathView chartPath) {
+  return FileSystem::IsFile(ForeignChart::RealFile(chartPath));
 }
 
 bool HasKsonExtension(FilePathView filePath) {

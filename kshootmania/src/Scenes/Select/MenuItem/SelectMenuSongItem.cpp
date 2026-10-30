@@ -9,7 +9,7 @@ SelectMenuSongItem::SelectMenuSongItem(FilePathView fullPath)
 {
 	Array<FilePath> chartFilePaths;
 
-	if (FileSystem::IsFile(fullPath))
+	if (FsUtils::ChartFileExists(fullPath) && !FileSystem::IsDirectory(fullPath))
 	{
 		// 個別の譜面ファイルの場合
 		if (FsUtils::HasChartExtension(fullPath))
@@ -89,7 +89,7 @@ void SelectMenuSongItem::decide(const SelectMenuEventContext& context, int32 dif
 	const FilePath chartFilePath = FilePath{ pChartInfo->chartFilePath() };
 
 	// 譜面ファイルの存在チェック
-	if (!FileSystem::Exists(chartFilePath))
+	if (!FsUtils::ChartFileExists(chartFilePath))
 	{
 		context.fnShowErrorDialog(I18n::Get(I18n::Play::ErrorChartFileNotFound));
 		return;
@@ -116,7 +116,7 @@ void SelectMenuSongItem::decideAutoPlay(const SelectMenuEventContext& context, i
 	const FilePath chartFilePath = FilePath{ pChartInfo->chartFilePath() };
 
 	// 譜面ファイルの存在チェック
-	if (!FileSystem::Exists(chartFilePath))
+	if (!FsUtils::ChartFileExists(chartFilePath))
 	{
 		context.fnShowErrorDialog(I18n::Get(I18n::Play::ErrorChartFileNotFound));
 		return;

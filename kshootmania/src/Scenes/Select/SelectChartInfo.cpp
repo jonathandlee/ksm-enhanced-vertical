@@ -15,9 +15,7 @@ FilePath SelectChartInfo::toFullPath(const std::string& u8Filename) const
 
 kson::MetaChartData SelectChartInfo::LoadMetaChartData(FilePathView chartFilePath)
 {
-	kson::MetaChartData chartData = FsUtils::HasKsonExtension(chartFilePath)
-		? kson::LoadKsonMetaChartData(chartFilePath.toUTF8())
-		: kson::LoadKshMetaChartData(chartFilePath.toUTF8());
+	kson::MetaChartData chartData = ChartIO::LoadMetaChartData(chartFilePath);
 
 	// disp_bpmが空の場合は最初のBPMを表示に使用
 	if (chartData.meta.dispBPM.empty())

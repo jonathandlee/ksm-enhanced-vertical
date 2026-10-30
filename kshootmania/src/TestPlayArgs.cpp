@@ -52,7 +52,7 @@ Optional<TestPlayArgs> ParseTestPlayArgs(bool* pShouldExit)
 	}
 
 	// ファイルが存在しない場合はエラー終了
-	if (!FileSystem::Exists(result.chartFilePath))
+	if (!FsUtils::ChartFileExists(result.chartFilePath))
 	{
 		MessageBoxUtils::ShowOK(U"Chart file not found:\n" + result.chartFilePath, MessageBoxStyle::Error);
 		*pShouldExit = true;

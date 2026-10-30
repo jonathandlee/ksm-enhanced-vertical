@@ -17,8 +17,7 @@ class VerticalRenderPreview : public Co::UpdaterSceneBase
     static kson::ChartData chart()
     {
         const auto path = chartPath();
-        if (!path.isEmpty()) return theme(FsUtils::HasKsonExtension(path)
-            ? kson::LoadKsonChartData(path.toUTF8()) : kson::LoadKshChartData(path.toUTF8()));
+        if (!path.isEmpty()) return theme(ChartIO::LoadChartData(path));
         auto result = kson::CreateEditorDefaultChartData();
         result.meta.title = System::GetCommandLineArgs().contains(U"--vertical-preview-long-title")
             ? "A VERY LONG VERTICAL RENDER CHECK TITLE / Japanese 日本語 Korean 한글" : "VERTICAL RENDER CHECK";

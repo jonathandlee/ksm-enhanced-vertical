@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="Source Files\ForeignChart">
+      <UniqueIdentifier>{5042baf2-94a3-4378-ac9d-be9506e80c7d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\ForeignChart">
+      <UniqueIdentifier>{dc25e84c-c84f-449f-8bbd-44dbc20c4bd9}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source Files">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
@@ -689,6 +695,24 @@
     </ClCompile>
     <ClCompile Include="src\Common\FsUtils.cpp">
       <Filter>Source Files\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ForeignChart\ForeignChart.cpp">
+      <Filter>Source Files\ForeignChart</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ForeignChart\ForeignChartDetail.cpp">
+      <Filter>Source Files\ForeignChart</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ForeignChart\OsuChart.cpp">
+      <Filter>Source Files\ForeignChart</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ForeignChart\SimfileChart.cpp">
+      <Filter>Source Files\ForeignChart</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Common\Library.cpp">
+      <Filter>Source Files\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scenes\Select\MenuItem\SelectMenuLibraryFolderItem.cpp">
+      <Filter>Source Files\Scenes\Select\MenuItem</Filter>
     </ClCompile>
     <ClCompile Include="src\Graphics\FontUtils.cpp">
       <Filter>Source Files\Graphics</Filter>
@@ -1479,6 +1503,27 @@
     </ClInclude>
     <ClInclude Include="src\Common\FsUtils.hpp">
       <Filter>Header Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ForeignChart\ForeignChart.hpp">
+      <Filter>Header Files\ForeignChart</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ForeignChart\ForeignChartDetail.hpp">
+      <Filter>Header Files\ForeignChart</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ForeignChart\OsuChart.hpp">
+      <Filter>Header Files\ForeignChart</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ForeignChart\SimfileChart.hpp">
+      <Filter>Header Files\ForeignChart</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Common\Library.hpp">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Common\ChartIO.hpp">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Scenes\Select\MenuItem\SelectMenuLibraryFolderItem.hpp">
+      <Filter>Header Files\Scenes\Select\MenuItem</Filter>
     </ClInclude>
     <ClInclude Include="src\MusicGame\PlayOption.hpp">
       <Filter>Header Files\MusicGame</Filter>

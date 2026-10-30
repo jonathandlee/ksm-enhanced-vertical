@@ -39,7 +39,7 @@ void SelectMenuCourseItem::decide(const SelectMenuEventContext& context, [[maybe
 
 	// コースプレイ開始
 	const FilePath firstChartPath = m_courseInfo.charts[0].absolutePath;
-	if (!FileSystem::Exists(firstChartPath))
+	if (!FsUtils::ChartFileExists(firstChartPath))
 	{
 		context.fnShowErrorDialog(I18n::Get(I18n::Play::ErrorChartFileNotFound));
 		return;
@@ -62,7 +62,7 @@ void SelectMenuCourseItem::decideAutoPlay(const SelectMenuEventContext& context,
 
 	// オートプレイでコースプレイ開始
 	const FilePath firstChartPath = m_courseInfo.charts[0].absolutePath;
-	if (!FileSystem::Exists(firstChartPath))
+	if (!FsUtils::ChartFileExists(firstChartPath))
 	{
 		context.fnShowErrorDialog(I18n::Get(I18n::Play::ErrorChartFileNotFound));
 		return;
@@ -140,7 +140,7 @@ void SelectMenuCourseItem::setCanvasParamsCenter(const SelectMenuEventContext& c
 				FilePath songTitleImgPath;
 				FilePath artistNameImgPath;
 
-				if (FileSystem::Exists(chart.absolutePath))
+				if (FsUtils::ChartFileExists(chart.absolutePath))
 				{
 					const kson::MetaChartData chartData = SelectChartInfo::LoadMetaChartData(chart.absolutePath);
 

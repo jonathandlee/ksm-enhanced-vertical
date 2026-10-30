@@ -32,6 +32,8 @@ struct SelectMenuEventContext
 	std::function<void(FilePath)> fnOpenFavoriteFolder;
 	std::function<void()> fnOpenCoursesFolder;
 	std::function<void()> fnCloseFolder;
+	std::function<void(String)> fnOpenLibrary;
+	std::function<void()> fnCloseLibrary;
 	std::function<void()> fnExitSearch;
 	std::function<void()> fnMoveToNextSubDirSection;
 	std::function<void()> fnMoveToPrevSubDirSection;
@@ -61,6 +63,9 @@ private:
 	std::shared_ptr<noco::Canvas> m_selectSceneCanvas;
 
 	SelectFolderState m_folderState;
+
+	// Library shown at the root when osu!/Etterna/StepMania folders are configured (empty = library list)
+	String m_currentLibraryId;
 
 	bool m_searchActive = false;
 
@@ -136,6 +141,14 @@ private:
 
 	void addOtherFolderItemsSimple();
 
+	std::unique_ptr<ISelectMenuItem> createFolderItem(FilePathView folderPath) const;
+
+	void setCurrentLibrary(StringView libraryId);
+
+	void openLibrary(StringView libraryId, PlaySeYN playSe);
+
+	void closeLibrary(PlaySeYN playSe);
+
 	void applySearchModeFilter();
 
 public:
@@ -161,6 +174,13 @@ public:
 	bool isFolderOpen() const;
 
 	void closeFolder(PlaySeYN playSe);
+
+	/// @brief Back is possible: a folder is open, or a library is open at the root
+	[[nodiscard]]
+	bool canGoUp() const;
+
+	/// @brief Close the open folder, or leave the open library
+	void goUp(PlaySeYN playSe);
 
 	[[nodiscard]]
 	const ISelectMenuItem& cursorMenuItem() const;

@@ -1,11 +1,34 @@
 ﻿#include "SelectMenuDirFolderItem.hpp"
 #include "Graphics/FontUtils.hpp"
 #include "Common/FsUtils.hpp"
+#include "Common/Library.hpp"
+
+namespace
+{
+	// A library folder opened as a package (osu!'s Songs folder) shows the library's name
+	String DisplayNameFor(FilePathView fullPath)
+	{
+		if (const auto library = Library::ForeignLibraryForPath(fullPath))
+		{
+			String path = FileSystem::FullPath(fullPath);
+			path.replace(U'\\', U'/');
+			if (!path.ends_with(U'/'))
+			{
+				path.push_back(U'/');
+			}
+			if (path.lowercased() == library->rootPath.lowercased())
+			{
+				return library->displayName;
+			}
+		}
+		return FsUtils::DirectoryNameByDirectoryPath(fullPath);
+	}
+}
 
 SelectMenuDirFolderItem::SelectMenuDirFolderItem(IsCurrentFolderYN isCurrentFolder, FilePathView fullPath)
 	: m_isCurrentFolder(isCurrentFolder)
 	, m_fullPath(fullPath)
-	, m_displayName(FsUtils::DirectoryNameByDirectoryPath(m_fullPath))
+	, m_displayName(DisplayNameFor(m_fullPath))
 {
 }
 

@@ -502,6 +502,49 @@ void KSMMain()
         try{ExScoreFixture::Run();}catch(const Error& error){TextWriter{FsUtils::GetResourcePath(U"ex-score-failure.txt")}.writeln(error);}
         Vertical::OptionsPresentation::Reset();ksmaudio::Terminate();return;
     }
+    // --foreign-chart-dump <folder> <out.jsonl>: load every osu!/StepMania chart under a folder and dump
+    // its timing and notes, for comparing against the mania2ksh converter. Writes nothing else.
+    if (const auto& args = System::GetCommandLineArgs(); args.contains(U"--foreign-chart-dump")) {
+        const auto it = std::find(args.begin(), args.end(), U"--foreign-chart-dump");
+        if (std::distance(it, args.end()) >= 3) {
+            const FilePath root = *(it + 1);
+            TextWriter out{ *(it + 2) };
+            Array<FilePath> dirs = { root };
+            for (const auto& p : FileSystem::DirectoryContents(root, Recursive::Yes)) if (FileSystem::IsDirectory(p)) dirs << p;
+            for (const auto& dir : dirs) {
+                for (const auto& chartPath : ForeignChart::ListCharts(dir)) {
+                    const kson::ChartData chart = ChartIO::LoadChartData(chartPath);
+                    nlohmann::json line = nlohmann::json::object();
+                    line["path"] = chartPath.toUTF8();
+                    line["error"] = static_cast<int>(chart.error);
+                    if (chart.error == kson::ErrorType::None) {
+                        line["title"] = chart.meta.title;
+                        line["level"] = chart.meta.level;
+                        line["difficulty"] = chart.meta.difficulty.idx;
+                        line["offset"] = chart.audio.bgm.offset;
+                        line["audio"] = chart.audio.bgm.filename;
+                        line["jacket"] = chart.meta.jacketFilename;
+                        nlohmann::json bpm = nlohmann::json::array();
+                        for (const auto& [pulse, value] : chart.beat.bpm) bpm.push_back({ pulse, value });
+                        line["bpm"] = bpm;
+                        const auto lanes = [](const auto& laneArray) {
+                            nlohmann::json arr = nlohmann::json::array();
+                            for (const auto& lane : laneArray) {
+                                nlohmann::json l = nlohmann::json::array();
+                                for (const auto& [pulse, interval] : lane) l.push_back({ pulse, interval.length });
+                                arr.push_back(l);
+                            }
+                            return arr;
+                        };
+                        line["bt"] = lanes(chart.note.bt);
+                        line["fx"] = lanes(chart.note.fx);
+                    }
+                    out.writeln(Unicode::FromUTF8(line.dump()));
+                }
+            }
+        }
+        Vertical::OptionsPresentation::Reset(); ksmaudio::Terminate(); return;
+    }
     if (System::GetCommandLineArgs().contains(U"--timing-hud-smoke-test")) {
         try { TimingHudFixture::Run(); }
         catch (const Error& error) { TextWriter{FsUtils::GetResourcePath(U"timing-hud-failure.txt")}.writeln(error); }
@@ -663,9 +706,7 @@ void KSMMain()
 	// テストプレイの場合、譜面ファイルの読み込みを事前検証
 	if (testPlayArgs.has_value())
 	{
-		const auto chartData = FsUtils::HasKsonExtension(testPlayArgs->chartFilePath)
-			? kson::LoadKsonChartData(testPlayArgs->chartFilePath.toUTF8())
-			: kson::LoadKshChartData(testPlayArgs->chartFilePath.toUTF8());
+		const auto chartData = ChartIO::LoadChartData(testPlayArgs->chartFilePath);
 		if (chartData.error != kson::ErrorType::None)
 		{
 			MessageBoxUtils::ShowOK(I18n::Get(I18n::Play::ErrorChartLoadFailed), MessageBoxStyle::Error);

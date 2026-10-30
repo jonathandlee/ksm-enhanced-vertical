@@ -172,6 +172,12 @@
     <ClCompile Include="src\Common\Encoding.cpp" />
     <ClCompile Include="src\Common\FrameRateLimit.cpp" />
     <ClCompile Include="src\Common\FsUtils.cpp" />
+    <ClCompile Include="src\ForeignChart\ForeignChart.cpp" />
+    <ClCompile Include="src\ForeignChart\ForeignChartDetail.cpp" />
+    <ClCompile Include="src\ForeignChart\OsuChart.cpp" />
+    <ClCompile Include="src\ForeignChart\SimfileChart.cpp" />
+    <ClCompile Include="src\Common\Library.cpp" />
+    <ClCompile Include="src\Scenes\Select\MenuItem\SelectMenuLibraryFolderItem.cpp" />
     <ClCompile Include="src\Common\IMEUtils.cpp" />
     <ClCompile Include="src\Common\MathUtils.cpp" />
     <ClCompile Include="src\Common\MessageBoxUtils.cpp" />
@@ -411,6 +417,13 @@
     <ClInclude Include="src\Common\EnumUtils.hpp" />
     <ClInclude Include="src\Common\FrameRateLimit.hpp" />
     <ClInclude Include="src\Common\FsUtils.hpp" />
+    <ClInclude Include="src\ForeignChart\ForeignChart.hpp" />
+    <ClInclude Include="src\ForeignChart\ForeignChartDetail.hpp" />
+    <ClInclude Include="src\ForeignChart\OsuChart.hpp" />
+    <ClInclude Include="src\ForeignChart\SimfileChart.hpp" />
+    <ClInclude Include="src\Common\Library.hpp" />
+    <ClInclude Include="src\Common\ChartIO.hpp" />
+    <ClInclude Include="src\Scenes\Select\MenuItem\SelectMenuLibraryFolderItem.hpp" />
     <ClInclude Include="src\Common\IMEUtils.hpp" />
     <ClInclude Include="src\Common\MathUtils.hpp" />
     <ClInclude Include="src\Common\MessageBoxUtils.hpp" />

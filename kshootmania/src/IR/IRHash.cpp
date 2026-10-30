@@ -167,6 +167,11 @@ namespace
 
 String IRHash::Calculate(FilePathView chartFilePath)
 {
+	// osu!/StepMania charts have no KSM IR identity
+	if (ForeignChart::IsForeignChart(chartFilePath))
+	{
+		return {};
+	}
 	if (FsUtils::HasKsonExtension(chartFilePath))
 	{
 		return CalculateFromKsonFile(chartFilePath);

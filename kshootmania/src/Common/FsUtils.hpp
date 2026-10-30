@@ -78,6 +78,10 @@ namespace FsUtils
 	[[nodiscard]]
 	String RelativePathFromSongsDir(FilePathView fullPath);
 
+	/// @brief RelativePathFromSongsDirの逆変換 (foreign libraries use an "@<id>/" prefix)
+	[[nodiscard]]
+	FilePath FullPathFromSongsRelative(StringView relativePath);
+
 	/// @brief ディレクトリからksonを優先して重複除去した譜面ファイルパス一覧を取得
 	/// @param directoryPath ディレクトリパス
 	/// @return 譜面ファイルパスの配列
@@ -89,6 +93,14 @@ namespace FsUtils
 	/// @return 譜面ファイルの拡張子の場合true
 	[[nodiscard]]
 	bool HasChartExtension(FilePathView filePath);
+
+	/// @brief .ksh/.kson only (excludes osu!/StepMania charts)
+	[[nodiscard]]
+	bool HasKsmChartExtension(FilePathView filePath);
+
+	/// @brief Whether the file behind a chart path exists ("song.ssc|2" checks song.ssc)
+	[[nodiscard]]
+	bool ChartFileExists(FilePathView chartPath);
 
 	/// @brief ファイルパスがkson形式の拡張子(.kson)を持つか
 	/// @param filePath ファイルパス

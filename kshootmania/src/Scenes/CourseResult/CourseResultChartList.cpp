@@ -86,7 +86,7 @@ void CourseResultChartList::refreshCanvasParams(const CoursePlayState& courseSta
 		const FilePath& chartPath = courseInfo.charts[chartIdx].absolutePath;
 		const MusicGame::PlayResult& result = results[chartIdx];
 
-		if (!FileSystem::Exists(chartPath))
+		if (!FsUtils::ChartFileExists(chartPath))
 		{
 			Logger << U"[ksm error] Chart file not found: {}"_fmt(chartPath);
 			m_canvas->setSubCanvasParamValuesByTag(U"chartItem{}"_fmt(i + 1), {

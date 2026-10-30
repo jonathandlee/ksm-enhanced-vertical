@@ -19,7 +19,15 @@ int64 ChartExMaximum(const kson::ChartData& chart){
     return maximum;
 }
 int64 LoadChartExMaximum(FilePathView path){
-    const auto chart=FsUtils::HasKsonExtension(path)?kson::LoadKsonChartData(String{path}.toUTF8()):kson::LoadKshChartData(String{path}.toUTF8());
-    return chart.error==kson::ErrorType::None?ChartExMaximum(chart):0;
+    if(ForeignChart::IsForeignChart(path))return 0; // EX SCORE is off for osu!/StepMania charts
+    try{
+        const auto chart=FsUtils::HasKsonExtension(path)?kson::LoadKsonChartData(String{path}.toUTF8()):kson::LoadKshChartData(String{path}.toUTF8());
+        if(chart.error!=kson::ErrorType::None)return 0;
+        if(chart.beat.bpm.empty()){TextWriter{FsUtils::GetResourcePath(U"bad-charts.txt"),OpenMode::Append}.writeln(U"no bpm\t{}"_fmt(path));return 0;}
+        return ChartExMaximum(chart);
+    }catch(const std::exception& e){
+        TextWriter{FsUtils::GetResourcePath(U"bad-charts.txt"),OpenMode::Append}.writeln(U"{}\t{}"_fmt(Unicode::FromUTF8(e.what()),path));
+        return 0;
+    }
 }
 }
