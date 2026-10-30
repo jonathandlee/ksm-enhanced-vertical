@@ -118,7 +118,8 @@ enum class JudgeColor : int32 { kFastBlue = 0, kFastRed, kCount };
 
 enum class TimingPosition : int32 { kUpperPlus = 0, kUpper, kStandard, kLower, kCount };
 enum class TimingMsDisplay : int32 { kOff = 0, kAll, kNear, kCrit, kCount };
-enum class TimingMsColor : int32 { kOff = 0, kNear, kCrit, kSixteenMs, kCount };
+// Thresholds shared by ±ms COLOR (ms number color) and FAST/SLOW (when the FAST/SLOW word appears).
+enum class TimingMsColor : int32 { kOff = 0, kNear, kCrit, kSixteenMs, kAll, kCount };
 
 enum class NoteSkinType : int32
 {

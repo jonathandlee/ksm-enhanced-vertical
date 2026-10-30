@@ -143,6 +143,7 @@ enum class Select {
   TimingPosition,
   TimingMsDisplay,
   TimingMsColor,
+  TimingMsWord,
   NoteSkin,
   NoteSkinDefault,
   NoteSkinNote,

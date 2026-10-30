@@ -35,9 +35,11 @@ namespace
 
 	// BT-Cメニューの項目
     enum class BTCMenuItem : int32 {
-        kJudgeColor=0,kTimingMsColor,kTimingMsDisplay,kTimingPosition,
+        kJudgeColor=0,kTimingMsColor,kTimingMsWord,kTimingMsDisplay,kTimingPosition,
         kAssistTick,kAutoSync,kFastSlow,kNoteSkin,kMovie,kCount
     };
+    static_assert(static_cast<int32>(BTCMenuItem::kAssistTick)==MusicGame::kTimingMenuFirstCommonRow
+        && static_cast<int32>(BTCMenuItem::kMovie)==MusicGame::kTimingMenuLastRow,"TimingMenuCursor bounds follow BTCMenuItem");
 
 	// ハイスピード値の範囲
 	constexpr int32 kHispeedXModMin = 1; // x-modの最小値(x0.1)
@@ -338,6 +340,10 @@ BTOptionPanel::BTOptionPanel(std::shared_ptr<noco::Canvas> canvas)
         .cursorInputCreateInfo = {.type = CursorInput::Type::Horizontal, .buttonFlags = CursorButtonFlags::kArrowOrLaser},
         .enumCount = static_cast<int32>(TimingMsColor::kCount), .cyclic = IsCyclicMenuYN::No,
     })
+    , m_timingMsWord(LinearMenu::CreateInfoWithEnumCount{
+        .cursorInputCreateInfo = {.type = CursorInput::Type::Horizontal, .buttonFlags = CursorButtonFlags::kArrowOrLaser},
+        .enumCount = static_cast<int32>(TimingMsColor::kCount), .cyclic = IsCyclicMenuYN::No,
+    })
 	, m_noteSkin(LinearMenu::CreateInfoWithEnumCount{
 		.cursorInputCreateInfo = {
 			.type = CursorInput::Type::Horizontal,
@@ -381,7 +387,7 @@ BTOptionPanel::BTOptionPanel(std::shared_ptr<noco::Canvas> canvas)
 {
 	// ConfigIniから設定値を読み込み
 	loadFromConfigIni();
-    m_btCMenu.setCursor(4);
+    m_btCMenu.setCursor(MusicGame::kTimingMenuFirstCommonRow);
 }
 
 Optional<Button> BTOptionPanel::getCurrentSingleBTButton() const
@@ -472,7 +478,7 @@ String BTOptionPanel::generateBTCMenuText() const {
 }
 void BTOptionPanel::updateBTCMenuRows() {
     const bool enabled=m_fastSlow.cursorAs<FastSlowMode>()==FastSlowMode::kNew;
-    m_btCMenu.setCursorMinMax(enabled?0:4,8);
+    m_btCMenu.setCursorMinMax(enabled?0:MusicGame::kTimingMenuFirstCommonRow,MusicGame::kTimingMenuLastRow);
     m_btCMenu.setCursor(MusicGame::TimingMenuCursor(m_btCMenu.cursor(),0,enabled));
     if(enabled!=m_extendedEnabled){
         m_extendedEnabled=enabled;
@@ -493,12 +499,14 @@ void BTOptionPanel::updateBTCMenuRows() {
     const std::array<StringView,4> positions{U"UPPER+",U"UPPER",U"STANDARD",U"LOWER"};
     const auto& displays=MusicGame::kTimingDisplayLabels;
     const auto& colors=MusicGame::kTimingColorLabels;
-    const std::array<String,3> labels{String{I18n::Get(I18n::Select::TimingMsColor)},String{I18n::Get(I18n::Select::TimingMsDisplay)},String{I18n::Get(I18n::Select::TimingPosition)}};
-    const std::array<StringView,3> values{colors[m_timingMsColor.cursor()],displays[m_timingMsDisplay.cursor()],positions[m_timingPosition.cursor()]};
-    const std::array<const LinearMenu*,3> menus{&m_timingMsColor,&m_timingMsDisplay,&m_timingPosition};
-    for(int i=0;i<3;++i){const auto prefix=U"timingMenu{}"_fmt(i+1);
+    // Rows follow BTCMenuItem 1-4: ±ms COLOR, FAST/SLOW word, ±ms DISPLAY, TIMING POSITION.
+    const std::array<String,4> labels{String{I18n::Get(I18n::Select::TimingMsColor)},String{I18n::Get(I18n::Select::TimingMsWord)},String{I18n::Get(I18n::Select::TimingMsDisplay)},String{I18n::Get(I18n::Select::TimingPosition)}};
+    const std::array<StringView,4> values{colors[m_timingMsColor.cursor()],colors[m_timingMsWord.cursor()],displays[m_timingMsDisplay.cursor()],positions[m_timingPosition.cursor()]};
+    const std::array<const LinearMenu*,4> menus{&m_timingMsColor,&m_timingMsWord,&m_timingMsDisplay,&m_timingPosition};
+    const std::array<int32,4> maxCursors{MusicGame::kTimingThresholdMax,MusicGame::kTimingThresholdMax,3,3};
+    for(int i=0;i<4;++i){const auto prefix=U"timingMenu{}"_fmt(i+1);
         m_canvas->setParamValue(prefix+U"Label",labels[i].trimmed());
-        m_canvas->setParamValue(prefix+U"Value",FormatMenuLine(U"",values[i],enabled && m_btCMenu.cursor()==i+1,menus[i]->cursor(),0,3));
+        m_canvas->setParamValue(prefix+U"Value",FormatMenuLine(U"",values[i],enabled && m_btCMenu.cursor()==i+1,menus[i]->cursor(),0,maxCursors[i]));
     }
 }
 
@@ -522,7 +530,7 @@ bool BTOptionPanel::update(double currentChartStdBPM)
         m_isVisible=true;
         for(StringView letter:{U"A",U"B",U"C",U"D"})
             m_canvas->setParamValue(U"overlay_btOptionPanelVisible_"+String{letter},letter==U"C");
-        m_fastSlow.setCursor(TimingHudCapture::Choices()?2:2-TimingHudCapture::Stage());m_btCMenu.setCursor(TimingHudCapture::Choices()?1:6);
+        m_fastSlow.setCursor(TimingHudCapture::Choices()?2:2-TimingHudCapture::Stage());m_btCMenu.setCursor(TimingHudCapture::Choices()?1:static_cast<int32>(BTCMenuItem::kFastSlow));
         if(TimingHudCapture::Choices()){
             m_timingMsDisplay.setCursor(TimingHudCapture::Stage());m_timingMsColor.setCursor(TimingHudCapture::Stage());
             static int32 savedStage=-1;
@@ -634,7 +642,7 @@ bool BTOptionPanel::update(double currentChartStdBPM)
 		}
 		else if (currentButton == kButtonBT_C)
 		{
-            m_btCMenu.setCursorMinMax(m_fastSlow.cursorAs<FastSlowMode>()==FastSlowMode::kNew?0:4,8);
+            m_btCMenu.setCursorMinMax(m_fastSlow.cursorAs<FastSlowMode>()==FastSlowMode::kNew?0:MusicGame::kTimingMenuFirstCommonRow,MusicGame::kTimingMenuLastRow);
             m_btCMenu.update();
             m_btCMenu.setCursor(MusicGame::TimingMenuCursor(m_btCMenu.cursor(), m_btCMenu.deltaCursor(),
                 m_fastSlow.cursorAs<FastSlowMode>()==FastSlowMode::kNew));
@@ -667,6 +675,9 @@ bool BTOptionPanel::update(double currentChartStdBPM)
             }
             else if (currentItem == BTCMenuItem::kTimingMsColor) {
                 m_timingMsColor.update(); valueChanged=m_timingMsColor.deltaCursor()!=0;
+            }
+            else if (currentItem == BTCMenuItem::kTimingMsWord) {
+                m_timingMsWord.update(); valueChanged=m_timingMsWord.deltaCursor()!=0;
             }
 			else if (currentItem == BTCMenuItem::kNoteSkin)
 			{
@@ -802,6 +813,7 @@ void BTOptionPanel::loadFromConfigIni()
     m_timingPosition.setCursor(ConfigIni::GetInt(ConfigIni::Key::kTimingPosition,0));
     m_timingMsDisplay.setCursor(MusicGame::TimingDisplayCursor(RuntimeConfig::LoadTimingHudSettingsFromConfigIni().display));
     m_timingMsColor.setCursor(ConfigIni::GetInt(ConfigIni::Key::kTimingMsColor,2));
+    m_timingMsWord.setCursor(static_cast<int32>(RuntimeConfig::LoadTimingHudSettingsFromConfigIni().word));
 
 	// noteskinは文字列として保存される
 	const StringView noteSkinStr = ConfigIni::GetString(ConfigIni::Key::kNoteSkin, U"default");
@@ -853,6 +865,7 @@ void BTOptionPanel::saveToConfigIni()
     ConfigIni::SetInt(ConfigIni::Key::kTimingPosition,m_timingPosition.cursor());
     ConfigIni::SetInt(ConfigIni::Key::kTimingMsDisplay,static_cast<int32>(MusicGame::TimingDisplayChoice(m_timingMsDisplay.cursor())));
     ConfigIni::SetInt(ConfigIni::Key::kTimingMsColor,m_timingMsColor.cursor());
+    ConfigIni::SetInt(ConfigIni::Key::kTimingMsWord,m_timingMsWord.cursor());
 
 	// noteskinは文字列として保存
 	if (m_noteSkin.cursorAs<NoteSkinType>() == NoteSkinType::kNote)

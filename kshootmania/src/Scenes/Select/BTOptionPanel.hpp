@@ -38,6 +38,7 @@ private:
     LinearMenu m_timingPosition;
     LinearMenu m_timingMsDisplay;
     LinearMenu m_timingMsColor;
+    LinearMenu m_timingMsWord;
 	LinearMenu m_noteSkin;
 	LinearMenu m_movie;
 

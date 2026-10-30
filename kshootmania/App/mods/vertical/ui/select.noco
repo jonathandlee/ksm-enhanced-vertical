@@ -5002,7 +5002,7 @@
                     ],
                     "posDelta": [
                       40,
-                      64.5
+                      34.5
                     ],
                     "sizeDelta": [
                       380,
@@ -5158,7 +5158,7 @@
                     ],
                     "posDelta": [
                       420,
-                      64.5
+                      34.5
                     ],
                     "sizeDelta": [
                       28,
@@ -5313,7 +5313,7 @@
                     ],
                     "posDelta": [
                       452,
-                      64.5
+                      34.5
                     ],
                     "sizeDelta": [
                       32,
@@ -5468,7 +5468,7 @@
                     ],
                     "posDelta": [
                       492,
-                      64.5
+                      34.5
                     ],
                     "sizeDelta": [
                       28,
@@ -5623,7 +5623,7 @@
                     ],
                     "posDelta": [
                       532,
-                      64.5
+                      34.5
                     ],
                     "sizeDelta": [
                       32,
@@ -5779,7 +5779,7 @@
                     ],
                     "posDelta": [
                       572,
-                      64.5
+                      34.5
                     ],
                     "sizeDelta": [
                       28,
@@ -5935,7 +5935,7 @@
                     ],
                     "posDelta": [
                       40,
-                      124.5
+                      94.5
                     ],
                     "sizeDelta": [
                       380,
@@ -6091,7 +6091,7 @@
                     ],
                     "posDelta": [
                       430,
-                      124.5
+                      94.5
                     ],
                     "sizeDelta": [
                       170,
@@ -6247,7 +6247,7 @@
                     ],
                     "posDelta": [
                       40,
-                      184.5
+                      154.5
                     ],
                     "sizeDelta": [
                       380,
@@ -6403,7 +6403,7 @@
                     ],
                     "posDelta": [
                       430,
-                      184.5
+                      154.5
                     ],
                     "sizeDelta": [
                       170,
@@ -6559,7 +6559,7 @@
                     ],
                     "posDelta": [
                       40,
-                      244.5
+                      214.5
                     ],
                     "sizeDelta": [
                       380,
@@ -6715,7 +6715,319 @@
                     ],
                     "posDelta": [
                       430,
-                      244.5
+                      214.5
+                    ],
+                    "sizeDelta": [
+                      170,
+                      60
+                    ],
+                    "sizeDeltaPivot": [
+                      0,
+                      0
+                    ]
+                  },
+                  "rubberBandScrollEnabled": true,
+                  "scrollBarType": "Overlay",
+                  "styleState": "",
+                  "transform": {
+                    "color": [
+                      255,
+                      255,
+                      255,
+                      255
+                    ],
+                    "hitTestAffected": true,
+                    "pivot": [
+                      0.5,
+                      0.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": [
+                      1.0,
+                      1.0
+                    ],
+                    "translate": [
+                      0.0,
+                      0.0
+                    ]
+                  },
+                  "verticalScrollable": false,
+                  "wheelScrollEnabled": true,
+                  "zOrderInSiblings": 0
+                },
+                {
+                  "activeSelf": true,
+                  "children": [],
+                  "childrenLayout": {
+                    "horizontalAlign": "Left",
+                    "padding": [
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    "spacing": [
+                      0.0,
+                      0.0
+                    ],
+                    "type": "FlowLayout",
+                    "verticalAlign": "Top"
+                  },
+                  "clippingEnabled": false,
+                  "components": [
+                    {
+                      "characterSpacing": [
+                        0.0,
+                        0.0
+                      ],
+                      "color": [
+                        255,
+                        255,
+                        255,
+                        255
+                      ],
+                      "fontAssetName": "",
+                      "fontSize": 36.0,
+                      "gradationColor1": [
+                        255,
+                        255,
+                        255,
+                        255
+                      ],
+                      "gradationColor2": [
+                        255,
+                        255,
+                        255,
+                        255
+                      ],
+                      "gradationType": "None",
+                      "horizontalAlign": "Left",
+                      "horizontalOverflow": "Overflow",
+                      "minFontSize": 1.0,
+                      "outlineColor": [
+                        0,
+                        0,
+                        0,
+                        255
+                      ],
+                      "outlineFactorInner": 0.0,
+                      "outlineFactorOuter": 0.0,
+                      "padding": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0
+                      ],
+                      "shadowColor": [
+                        0,
+                        0,
+                        0,
+                        0
+                      ],
+                      "shadowOffset": [
+                        1.0,
+                        1.0
+                      ],
+                      "sizingMode": "AutoShrinkWidth",
+                      "text": "",
+                      "type": "Label",
+                      "underlineColor": [
+                        255,
+                        255,
+                        255,
+                        255
+                      ],
+                      "underlineStyle": "None",
+                      "underlineThickness": 1.0,
+                      "verticalAlign": "Middle",
+                      "verticalOverflow": "Overflow",
+                      "text_paramRef": "timingMenu4Label",
+                      "color_paramRef": "newPlusColor"
+                    }
+                  ],
+                  "decelerationRate": 0.2,
+                  "dragScrollEnabled": true,
+                  "hitPadding": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "horizontalScrollable": false,
+                  "inheritChildrenHover": false,
+                  "inheritChildrenPress": false,
+                  "interactable": true,
+                  "isHitTarget": false,
+                  "name": "timingMenu4Label",
+                  "region": {
+                    "type": "AnchorRegion",
+                    "anchorMin": [
+                      0,
+                      0
+                    ],
+                    "anchorMax": [
+                      0,
+                      0
+                    ],
+                    "posDelta": [
+                      40,
+                      274.5
+                    ],
+                    "sizeDelta": [
+                      380,
+                      60
+                    ],
+                    "sizeDeltaPivot": [
+                      0,
+                      0
+                    ]
+                  },
+                  "rubberBandScrollEnabled": true,
+                  "scrollBarType": "Overlay",
+                  "styleState": "",
+                  "transform": {
+                    "color": [
+                      255,
+                      255,
+                      255,
+                      255
+                    ],
+                    "hitTestAffected": true,
+                    "pivot": [
+                      0.5,
+                      0.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": [
+                      1.0,
+                      1.0
+                    ],
+                    "translate": [
+                      0.0,
+                      0.0
+                    ]
+                  },
+                  "verticalScrollable": false,
+                  "wheelScrollEnabled": true,
+                  "zOrderInSiblings": 0
+                },
+                {
+                  "activeSelf": true,
+                  "children": [],
+                  "childrenLayout": {
+                    "horizontalAlign": "Left",
+                    "padding": [
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0
+                    ],
+                    "spacing": [
+                      0.0,
+                      0.0
+                    ],
+                    "type": "FlowLayout",
+                    "verticalAlign": "Top"
+                  },
+                  "clippingEnabled": false,
+                  "components": [
+                    {
+                      "characterSpacing": [
+                        0.0,
+                        0.0
+                      ],
+                      "color": [
+                        255,
+                        255,
+                        255,
+                        255
+                      ],
+                      "fontAssetName": "",
+                      "fontSize": 36.0,
+                      "gradationColor1": [
+                        255,
+                        255,
+                        255,
+                        255
+                      ],
+                      "gradationColor2": [
+                        255,
+                        255,
+                        255,
+                        255
+                      ],
+                      "gradationType": "None",
+                      "horizontalAlign": "Left",
+                      "horizontalOverflow": "Overflow",
+                      "minFontSize": 1.0,
+                      "outlineColor": [
+                        0,
+                        0,
+                        0,
+                        255
+                      ],
+                      "outlineFactorInner": 0.0,
+                      "outlineFactorOuter": 0.0,
+                      "padding": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0
+                      ],
+                      "shadowColor": [
+                        0,
+                        0,
+                        0,
+                        0
+                      ],
+                      "shadowOffset": [
+                        1.0,
+                        1.0
+                      ],
+                      "sizingMode": "AutoShrinkWidth",
+                      "text": "",
+                      "type": "Label",
+                      "underlineColor": [
+                        255,
+                        255,
+                        255,
+                        255
+                      ],
+                      "underlineStyle": "None",
+                      "underlineThickness": 1.0,
+                      "verticalAlign": "Middle",
+                      "verticalOverflow": "Overflow",
+                      "text_paramRef": "timingMenu4Value",
+                      "color_paramRef": "newPlusColor"
+                    }
+                  ],
+                  "decelerationRate": 0.2,
+                  "dragScrollEnabled": true,
+                  "hitPadding": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "horizontalScrollable": false,
+                  "inheritChildrenHover": false,
+                  "inheritChildrenPress": false,
+                  "interactable": true,
+                  "isHitTarget": false,
+                  "name": "timingMenu4Value",
+                  "region": {
+                    "type": "AnchorRegion",
+                    "anchorMin": [
+                      0,
+                      0
+                    ],
+                    "anchorMax": [
+                      0,
+                      0
+                    ],
+                    "posDelta": [
+                      430,
+                      274.5
                     ],
                     "sizeDelta": [
                       170,
@@ -8482,7 +8794,15 @@
       "type": "String",
       "value": ""
     },
+    "timingMenu4Label": {
+      "type": "String",
+      "value": ""
+    },
     "timingMenu3Value": {
+      "type": "String",
+      "value": ""
+    },
+    "timingMenu4Value": {
       "type": "String",
       "value": ""
     },

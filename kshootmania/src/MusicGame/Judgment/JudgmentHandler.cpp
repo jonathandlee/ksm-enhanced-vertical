@@ -194,7 +194,7 @@ namespace MusicGame::Judgment
 
 	void JudgmentHandler::applyToViewStatus(ViewStatus& viewStatusRef, double currentTimeSec, kson::Pulse currentPulse)
 	{
-		viewStatusRef.timingFeedback = m_timingFeedback.commit(currentTimeSec);
+		viewStatusRef.timingFeedback = m_timingFeedback.commit(currentTimeSec, m_playOption.liveTimingHud().word);
         viewStatusRef.detailedJudgments = m_detailedStats;
         viewStatusRef.inputTiming = m_inputTiming;
 

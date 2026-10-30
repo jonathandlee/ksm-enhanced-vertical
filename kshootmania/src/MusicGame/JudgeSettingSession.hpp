@@ -12,7 +12,7 @@ struct JudgeSettingValues {
     int32 input=0,visual=0,laser=0;
     bool operator==(const JudgeSettingValues& v) const {
         return mode==v.mode && hud.judgeColor==v.hud.judgeColor && hud.position==v.hud.position
-            && hud.display==v.hud.display && hud.color==v.hud.color
+            && hud.display==v.hud.display && hud.color==v.hud.color && hud.word==v.hud.word
             && input==v.input && visual==v.visual && laser==v.laser;
     }
 };
@@ -65,7 +65,7 @@ struct JudgeSettingSession {
         const auto before=values;
         if(index==0)edit(values.mode,2);
         if(index==1)edit(values.hud.judgeColor,1);
-        if(index==2)edit(values.hud.color,3);
+        if(index==2)edit(values.hud.color,(static_cast<int32>(TimingMsColor::kCount) - 1));
         if(index==3)values.hud.display=TimingDisplayChoice(TimingDisplayCursor(values.hud.display)+delta);
         if(index==4)edit(values.hud.position,3);
         if(index>=5 && index<=7){auto& value=index==5?values.input:index==6?values.visual:values.laser;value=Clamp(value+delta,-10000,10000);}
