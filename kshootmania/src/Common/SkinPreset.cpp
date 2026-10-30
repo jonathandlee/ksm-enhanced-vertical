@@ -90,6 +90,20 @@ namespace SkinPreset
 			}
 			return {};
 		}
+		// The vertical title draws its menu sprites over standby_vertical.png. Skins that paint their menu
+		// labels into a landscape title background ship see-through standby_item/standby_cur sprites, so
+		// when such a skin has no vertical background (and the default one is used), its sprites would
+		// be invisible. These names take their sprites from whichever skin supplied the background.
+		struct VerticalCompanion
+		{
+			StringView name;
+			StringView anchor;
+			StringView base;
+		};
+		constexpr std::array<VerticalCompanion, 2> kVerticalCompanions{ {
+			{ U"standby_item_vertical.gif", U"standby_vertical.png", U"standby_item.gif" },
+			{ U"standby_cur_vertical.gif", U"standby_vertical.png", U"standby_cur.gif" },
+		} };
 		FilePath RandomImageDirectory(StringView folder, StringView name)
 		{
 			return FileSystem::PathAppend(SkinDirectory(folder), StemOf(name) + U"_random/");
@@ -255,6 +269,22 @@ namespace SkinPreset
 		// Cached lookups touch no files: song select resolves skin jackets and icons on every cursor move.
 		if (const auto it = g_resolvedImagePaths.find(name); it != g_resolvedImagePaths.end())
 			return it->second;
+		for (const auto& companion : kVerticalCompanions)
+		{
+			if (name != companion.name)
+				continue;
+			// A skin may ship the companion sprite itself.
+			if (folder != U"default")
+			{
+				if (const auto own = FindImage(folder, name); !own.isEmpty())
+					return g_resolvedImagePaths[name] = own;
+			}
+			const bool skinHasAnchor = folder != U"default" && !FindImage(folder, companion.anchor).isEmpty();
+			FilePath path = FindImage(skinHasAnchor ? folder : String{ U"default" }, companion.base);
+			if (path.isEmpty())
+				path = FindImage(U"default", companion.base);
+			return g_resolvedImagePaths[name] = path;
+		}
 		// First lookup of this name: a skin's random folder wins, then its own file, then default's random folder.
 		for (const auto& candidateFolder : { folder, String{ U"default" } })
 		{

@@ -227,7 +227,7 @@
               "preserveAspect": false,
               "textureAddressMode": "Default",
               "textureAssetName": "",
-              "textureFilePath": "imgs/standby_cur.gif",
+              "textureFilePath": "imgs/standby_cur_vertical.gif",
               "textureFilter": "Default",
               "textureGridCellSize": [
                 32.0,
@@ -457,7 +457,7 @@
                   "preserveAspect": false,
                   "textureAddressMode": "Default",
                   "textureAssetName": "",
-                  "textureFilePath": "imgs/standby_item.gif",
+                  "textureFilePath": "imgs/standby_item_vertical.gif",
                   "textureFilter": "Default",
                   "textureGridCellSize": [
                     525.0,
@@ -615,7 +615,7 @@
                   "preserveAspect": false,
                   "textureAddressMode": "Default",
                   "textureAssetName": "",
-                  "textureFilePath": "imgs/standby_item.gif",
+                  "textureFilePath": "imgs/standby_item_vertical.gif",
                   "textureFilter": "Default",
                   "textureGridCellSize": [
                     525.0,
@@ -875,7 +875,7 @@
                   "preserveAspect": false,
                   "textureAddressMode": "Default",
                   "textureAssetName": "",
-                  "textureFilePath": "imgs/standby_item.gif",
+                  "textureFilePath": "imgs/standby_item_vertical.gif",
                   "textureFilter": "Default",
                   "textureGridCellSize": [
                     525.0,
@@ -1033,7 +1033,7 @@
                   "preserveAspect": false,
                   "textureAddressMode": "Default",
                   "textureAssetName": "",
-                  "textureFilePath": "imgs/standby_item.gif",
+                  "textureFilePath": "imgs/standby_item_vertical.gif",
                   "textureFilter": "Default",
                   "textureGridCellSize": [
                     525.0,
@@ -1293,7 +1293,7 @@
                   "preserveAspect": false,
                   "textureAddressMode": "Default",
                   "textureAssetName": "",
-                  "textureFilePath": "imgs/standby_item.gif",
+                  "textureFilePath": "imgs/standby_item_vertical.gif",
                   "textureFilter": "Default",
                   "textureGridCellSize": [
                     525.0,
@@ -1451,7 +1451,7 @@
                   "preserveAspect": false,
                   "textureAddressMode": "Default",
                   "textureAssetName": "",
-                  "textureFilePath": "imgs/standby_item.gif",
+                  "textureFilePath": "imgs/standby_item_vertical.gif",
                   "textureFilter": "Default",
                   "textureGridCellSize": [
                     525.0,
@@ -1711,7 +1711,7 @@
                   "preserveAspect": false,
                   "textureAddressMode": "Default",
                   "textureAssetName": "",
-                  "textureFilePath": "imgs/standby_item.gif",
+                  "textureFilePath": "imgs/standby_item_vertical.gif",
                   "textureFilter": "Default",
                   "textureGridCellSize": [
                     525.0,
@@ -1869,7 +1869,7 @@
                   "preserveAspect": false,
                   "textureAddressMode": "Default",
                   "textureAssetName": "",
-                  "textureFilePath": "imgs/standby_item.gif",
+                  "textureFilePath": "imgs/standby_item_vertical.gif",
                   "textureFilter": "Default",
                   "textureGridCellSize": [
                     525.0,
