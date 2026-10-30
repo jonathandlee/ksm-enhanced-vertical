@@ -177,6 +177,9 @@
     <ClCompile Include="src\Common\Encoding.cpp" />
     <ClCompile Include="src\Common\FrameRateLimit.cpp" />
     <ClCompile Include="src\Common\FsUtils.cpp" />
+    <ClCompile Include="src\Graphics\AsyncTextureLoader.cpp" />
+    <ClCompile Include="src\Graphics\GlyphPrewarmer.cpp" />
+    <ClCompile Include="src\Common\FrameLog.cpp" />
     <ClCompile Include="src\ForeignChart\ForeignChart.cpp" />
     <ClCompile Include="src\ForeignChart\ForeignChartDetail.cpp" />
     <ClCompile Include="src\ForeignChart\OsuChart.cpp" />
@@ -425,6 +428,9 @@
     <ClInclude Include="src\Common\FrameRateLimit.hpp" />
     <ClInclude Include="src\Common\WindowsWaitableTimer.hpp" />
     <ClInclude Include="src\Common\FsUtils.hpp" />
+    <ClInclude Include="src\Graphics\AsyncTextureLoader.hpp" />
+    <ClInclude Include="src\Graphics\GlyphPrewarmer.hpp" />
+    <ClInclude Include="src\Common\FrameLog.hpp" />
     <ClInclude Include="src\ForeignChart\ForeignChart.hpp" />
     <ClInclude Include="src\ForeignChart\ForeignChartDetail.hpp" />
     <ClInclude Include="src\ForeignChart\OsuChart.hpp" />

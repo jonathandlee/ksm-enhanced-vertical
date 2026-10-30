@@ -67,13 +67,16 @@ namespace AssetManagement
 			{
 				FontAsset::Unregister(kFontAssetSystemBold);
 			}
+			// SDF rather than MSDF: same outline/shadow support, but a CJK glyph takes ~2.3 ms to generate
+			// instead of ~8.7 ms. MSDF made song select stall 70-400 ms whenever titles with new characters
+			// scrolled into view (measured with --glyph-bench and --frame-log).
 #ifdef __linux
 			constexpr StringView kResourceDir = U"resources/";
-			FontAsset::Register(kFontAssetSystem, FontMethod::MSDF, 44, kResourceDir + fontPath, FontStyle::Default);
-			FontAsset::Register(kFontAssetSystemBold, FontMethod::MSDF, 44, kResourceDir + fontPath, FontStyle::Bold);
+			FontAsset::Register(kFontAssetSystem, FontMethod::SDF, 44, kResourceDir + fontPath, FontStyle::Default);
+			FontAsset::Register(kFontAssetSystemBold, FontMethod::SDF, 44, kResourceDir + fontPath, FontStyle::Bold);
 #else
-			FontAsset::Register(kFontAssetSystem, FontMethod::MSDF, 44, Resource(fontPath), FontStyle::Default);
-			FontAsset::Register(kFontAssetSystemBold, FontMethod::MSDF, 44, Resource(fontPath), FontStyle::Bold);
+			FontAsset::Register(kFontAssetSystem, FontMethod::SDF, 44, Resource(fontPath), FontStyle::Default);
+			FontAsset::Register(kFontAssetSystemBold, FontMethod::SDF, 44, Resource(fontPath), FontStyle::Bold);
 #endif
 		}
 	}

@@ -57,6 +57,7 @@ namespace ConfigIni
 		constexpr StringView kEtternaDirectory = U"etternadir";
 		constexpr StringView kStepManiaDirectory = U"stepmaniadir";
 		constexpr StringView kSelectLibrary = U"selectlibrary";
+		constexpr StringView kFrameLog = U"framelog";
 
 		// Option > Key Config
 		constexpr StringView kKeyConfigKeyboard1 = U"key";

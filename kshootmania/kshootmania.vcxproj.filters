@@ -702,6 +702,15 @@
     <ClCompile Include="src\Common\FsUtils.cpp">
       <Filter>Source Files\Common</Filter>
     </ClCompile>
+    <ClCompile Include="src\Graphics\AsyncTextureLoader.cpp">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Graphics\GlyphPrewarmer.cpp">
+      <Filter>Source Files\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Common\FrameLog.cpp">
+      <Filter>Source Files\Common</Filter>
+    </ClCompile>
     <ClCompile Include="src\ForeignChart\ForeignChart.cpp">
       <Filter>Source Files\ForeignChart</Filter>
     </ClCompile>
@@ -1517,6 +1526,15 @@
       <Filter>Header Files\Addon</Filter>
     </ClInclude>
     <ClInclude Include="src\Common\FsUtils.hpp">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Graphics\AsyncTextureLoader.hpp">
+      <Filter>Header Files\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Graphics\GlyphPrewarmer.hpp">
+      <Filter>Header Files\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Common\FrameLog.hpp">
       <Filter>Header Files\Common</Filter>
     </ClInclude>
     <ClInclude Include="src\ForeignChart\ForeignChart.hpp">

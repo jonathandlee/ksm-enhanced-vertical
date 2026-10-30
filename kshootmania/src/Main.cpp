@@ -11,6 +11,8 @@
 #include <CoTaskLib.hpp>
 #include <NocoUI.hpp>
 #include "Common/FrameRateLimit.hpp"
+#include "Common/FrameLog.hpp"
+#include "Graphics/AsyncTextureLoader.hpp"
 #include "Common/IMEUtils.hpp"
 #include "Common/AssetManagement.hpp"
 #include "Addon/AutoMuteAddon.hpp"
@@ -563,6 +565,15 @@ void KSMMain()
 	{
 		return;
 	}
+	// Generate printable ASCII glyphs up front, so timing text ("+12.3ms", FAST/SLOW), scores and menus
+	// never generate glyphs mid-play on their first appearance.
+	{
+		String ascii;
+		for (char32 ch = U' '; ch <= U'~'; ++ch)
+			ascii.push_back(ch);
+		AssetManagement::SystemFont().preload(ascii);
+		AssetManagement::SystemFontBold().preload(ascii);
+	}
 
 	// Vsync設定を反映("0;120"または"1"の形式)
 	const Array<String> vsyncParts = String{ ConfigIni::GetString(ConfigIni::Key::kVsync, U"0;300") }.split(U';');
@@ -747,7 +758,8 @@ void KSMMain()
 				chart = args[i + 1];
 		initialSceneFactory = Co::MakeSceneFactory<PlayPrepareScene>(chart, MusicGame::IsAutoPlayYN::No);
 	}
-	if (previewSelect)
+	// Diagnostics: start in song select with the user's own settings (no preview layout, no auto-exit).
+	if (previewSelect || ModDiagnostics::Arguments().contains(U"--start-select"))
 		initialSceneFactory = Co::MakeSceneFactory<SelectScene>();
 	if (previewResult)
 	{
@@ -785,6 +797,20 @@ void KSMMain()
 		},
 		Co::Layer::User_PostTransition_10
 	};
+	// Frame-time recording: framelog=1 in config.ini, or --frame-log <csv> [seconds] in diagnostics builds.
+	if (const auto& args = ModDiagnostics::Arguments(); args.contains(U"--frame-log"))
+	{
+		const auto it = std::find(args.begin(), args.end(), U"--frame-log");
+		if (std::distance(it, args.end()) >= 2)
+		{
+			const double seconds = std::distance(it, args.end()) >= 3 ? ParseOr<double>(*(it + 2), 0.0) : 0.0;
+			FrameLog::Start(*(it + 1), seconds);
+		}
+	}
+	else if (ConfigIni::GetBool(ConfigIni::Key::kFrameLog, false))
+	{
+		FrameLog::Start(FsUtils::GetResourcePath(U"log/frames-{}.csv"_fmt(DateTime::Now().format(U"yyyyMMdd-HHmmss"))));
+	}
 	Stopwatch previewTimer{ StartImmediately::Yes };
 	bool previewCaptured = false;
 	bool previewMenuOpened = false;
@@ -810,6 +836,9 @@ void KSMMain()
 		ksmaudio::qa::FrameBegin();
 		if (!System::Update())
 			break;
+		if (!FrameLog::EndFrame())
+			break;
+		AsyncTextureLoader::Update();
 		ksmaudio::qa::Phase("main.update");
 		if (ksmaudio::qa::writerFailed)
 			throw Error{ U"QA logging failed. Check free disk space and folder permissions." };
@@ -949,6 +978,8 @@ void KSMMain()
 			break;
 		}
 	}
+	FrameLog::Stop();
+	AsyncTextureLoader::Shutdown();
 
 	if (warpBench)
 	{

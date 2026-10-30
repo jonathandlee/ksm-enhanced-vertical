@@ -1,4 +1,7 @@
 ﻿#include "Diagnostics/DiagnosticArguments.hpp"
+#include "Common/FrameLog.hpp"
+#include "Graphics/GlyphPrewarmer.hpp"
+
 #include "SelectMenu.hpp"
 #include <cassert>
 #include "kson/kson.hpp"
@@ -25,6 +28,31 @@
 #include "SelectMenuCacheDb.hpp"
 #include "UI/MouseMenuUtils.hpp"
 #include "Vertical/VerticalModConfig.hpp"
+
+namespace
+{
+	// Jacket textures stay cached across folder changes until this many are loaded (see NocoUtils::TrimExternalTextures).
+	constexpr size_t kKeptExternalTextures = 256;
+
+	// Per-frame time for generating glyphs of text that is about to scroll into view.
+	constexpr double kGlyphPrewarmBudgetMs = 1.5;
+	// Items on each side of the cursor whose text is generated first.
+	constexpr int32 kGlyphPrewarmUrgentRange = 16;
+
+	void AppendItemTexts(const ISelectMenuItem* item, Array<String>& out)
+	{
+		if (item == nullptr)
+			return;
+		for (int32 difficultyIdx = 0; difficultyIdx < kNumDifficulties; ++difficultyIdx)
+		{
+			if (const auto* info = item->chartInfoPtr(difficultyIdx, FallbackForSingleChartYN::No))
+			{
+				out << info->title() << info->titleTranslit() << info->artist() << info->artistTranslit()
+					<< info->chartAuthor() << info->jacketAuthor() << info->information();
+			}
+		}
+	}
+}
 
 namespace
 {
@@ -525,7 +553,7 @@ bool SelectMenu::openDirectoryWithNameSort(FilePathView directoryPath)
 		}
 
 		m_menu.clear();
-		NocoUtils::UnloadExternalTextures();
+		NocoUtils::TrimExternalTextures(kKeptExternalTextures);
 
 		// ディレクトリの見出し項目を追加
 		m_menu.push_back(std::make_unique<SelectMenuDirFolderItem>(IsCurrentFolderYN::Yes, FileSystem::FullPath(directoryPath)));
@@ -567,7 +595,7 @@ bool SelectMenu::openDirectoryWithNameSort(FilePathView directoryPath)
 	else
 	{
 		m_menu.clear();
-		NocoUtils::UnloadExternalTextures();
+		NocoUtils::TrimExternalTextures(kKeptExternalTextures);
 
 		m_folderState.folderType = SelectFolderState::kNone;
 		m_folderState.fullPath = U"";
@@ -961,6 +989,23 @@ void SelectMenu::update(SongPreviewOnlyYN songPreviewOnly)
 		}
 	}
 
+	// Diagnostics: --select-autoscroll <ms> scrolls one item per interval, for frame-time measurements.
+	if (const auto& args = ModDiagnostics::Arguments(); !m_menu.empty() && args.contains(U"--select-autoscroll"))
+	{
+		static Stopwatch autoscrollClock{ StartImmediately::Yes };
+		const auto it = std::find(args.begin(), args.end(), U"--select-autoscroll");
+		const double intervalMs = std::distance(it, args.end()) >= 2 ? ParseOr<double>(*(it + 1), 150.0) : 150.0;
+		if (autoscrollClock.msF() >= intervalMs)
+		{
+			autoscrollClock.restart();
+			// --select-autoscroll-bounce: 30 items down, 30 back up, repeated (revisits the same items)
+			static int32 moves = 0;
+			const bool bounce = args.contains(U"--select-autoscroll-bounce");
+			externalDelta += (bounce && (moves / 30) % 2 == 1) ? -1 : 1;
+			++moves;
+		}
+	}
+
 	m_menu.updateWithExternalDelta(externalDelta);
 	if (const int32 deltaCursor = m_menu.deltaCursor(); deltaCursor != 0)
 	{
@@ -975,7 +1020,10 @@ void SelectMenu::update(SongPreviewOnlyYN songPreviewOnly)
 		{
 			playShakeUpTween();
 		}
-		refreshContentCanvasParams();
+		{
+			const FrameLog::Scope frameLogScope{ "select.params" };
+			refreshContentCanvasParams();
+		}
 		if (ModDiagnostics::Arguments().contains(U"--vertical-preview-select"))
 		{
 			TextWriter report{ U"vertical-select-preview-state.csv" };
@@ -983,7 +1031,35 @@ void SelectMenu::update(SongPreviewOnlyYN songPreviewOnly)
 			report.writeln(U"{},{},{}"_fmt(m_menu.cursor(), deltaCursor, currentChartFilePath().value_or(U"")));
 		}
 
+		const FrameLog::Scope frameLogScope{ "select.preview" };
 		refreshSongPreview();
+	}
+
+	// Generate glyphs for text about to scroll into view a little each frame, so new titles do not
+	// stall the frame that first draws them (see GlyphPrewarmer).
+	{
+		const String signature = U"{}|{}|{}"_fmt(m_folderState.fullPath, m_menu.size(), m_menu.empty() ? FilePathView{} : m_menu[0]->fullPath());
+		const bool menuChanged = signature != m_glyphPrewarmSignature;
+		if (menuChanged)
+		{
+			m_glyphPrewarmSignature = signature;
+			Array<String> folderTexts;
+			for (size_t i = 0; i < m_menu.size(); ++i)
+				AppendItemTexts(m_menu[i].get(), folderTexts);
+			GlyphPrewarmer::SetBackground(folderTexts);
+		}
+		if ((menuChanged || m_menu.deltaCursor() != 0) && !m_menu.empty())
+		{
+			Array<String> nearTexts;
+			for (int32 offset = 0; offset <= kGlyphPrewarmUrgentRange; ++offset)
+			{
+				AppendItemTexts(m_menu.atCyclic(m_menu.cursor() + offset).get(), nearTexts);
+				if (offset != 0)
+					AppendItemTexts(m_menu.atCyclic(m_menu.cursor() - offset).get(), nearTexts);
+			}
+			GlyphPrewarmer::SetUrgent(nearTexts);
+		}
+		GlyphPrewarmer::Update(kGlyphPrewarmBudgetMs);
 	}
 
 	// FX-L + FX-R同時押しでソートモード切り替え
@@ -1663,7 +1739,7 @@ bool SelectMenu::openDirectoryWithLevelSort(FilePathView directoryPath)
 		}
 
 		m_menu.clear();
-		NocoUtils::UnloadExternalTextures();
+		NocoUtils::TrimExternalTextures(kKeptExternalTextures);
 
 		// ディレクトリの見出し項目を追加
 		m_menu.push_back(std::make_unique<SelectMenuDirFolderItem>(IsCurrentFolderYN::Yes, FileSystem::FullPath(directoryPath)));
@@ -1713,7 +1789,7 @@ bool SelectMenu::openDirectoryWithLevelSort(FilePathView directoryPath)
 	else
 	{
 		m_menu.clear();
-		NocoUtils::UnloadExternalTextures();
+		NocoUtils::TrimExternalTextures(kKeptExternalTextures);
 
 		m_folderState.folderType = SelectFolderState::kNone;
 		m_folderState.fullPath = U"";
@@ -1776,7 +1852,7 @@ bool SelectMenu::openAllFolderWithNameSort()
 	using Unicode::FromUTF8;
 
 	m_menu.clear();
-	NocoUtils::UnloadExternalTextures();
+	NocoUtils::TrimExternalTextures(kKeptExternalTextures);
 
 	// Allフォルダの見出し項目を追加
 	m_menu.push_back(std::make_unique<SelectMenuAllFolderItem>(IsCurrentFolderYN::Yes));
@@ -1826,7 +1902,7 @@ bool SelectMenu::openAllFolderWithNameSort()
 bool SelectMenu::openAllFolderWithLevelSort()
 {
 	m_menu.clear();
-	NocoUtils::UnloadExternalTextures();
+	NocoUtils::TrimExternalTextures(kKeptExternalTextures);
 
 	// Allフォルダの見出し項目を追加
 	m_menu.push_back(std::make_unique<SelectMenuAllFolderItem>(IsCurrentFolderYN::Yes));
@@ -1934,7 +2010,7 @@ bool SelectMenu::openFavoriteFolderWithNameSort(FilePathView specialPath)
 	}
 
 	m_menu.clear();
-	NocoUtils::UnloadExternalTextures();
+	NocoUtils::TrimExternalTextures(kKeptExternalTextures);
 
 	// お気に入りフォルダの見出し項目を追加
 	m_menu.push_back(std::make_unique<SelectMenuFavFolderItem>(IsCurrentFolderYN::Yes, specialPath));
@@ -2001,7 +2077,7 @@ bool SelectMenu::openFavoriteFolderWithLevelSort(FilePathView specialPath)
 	}
 
 	m_menu.clear();
-	NocoUtils::UnloadExternalTextures();
+	NocoUtils::TrimExternalTextures(kKeptExternalTextures);
 
 	// お気に入りフォルダの見出し項目を追加
 	m_menu.push_back(std::make_unique<SelectMenuFavFolderItem>(IsCurrentFolderYN::Yes, specialPath));
@@ -2120,7 +2196,7 @@ bool SelectMenu::openCoursesFolder(PlaySeYN playSe, RefreshSongPreviewYN refresh
 bool SelectMenu::openCoursesFolderWithNameSort()
 {
 	m_menu.clear();
-	NocoUtils::UnloadExternalTextures();
+	NocoUtils::TrimExternalTextures(kKeptExternalTextures);
 
 	// コースフォルダの見出し項目を追加
 	m_menu.push_back(std::make_unique<SelectMenuCoursesFolderItem>(IsCurrentFolderYN::Yes));
@@ -2158,7 +2234,7 @@ bool SelectMenu::openCoursesFolderWithNameSort()
 bool SelectMenu::openCoursesFolderWithLevelSort()
 {
 	m_menu.clear();
-	NocoUtils::UnloadExternalTextures();
+	NocoUtils::TrimExternalTextures(kKeptExternalTextures);
 
 	// コースフォルダの見出し項目を追加
 	m_menu.push_back(std::make_unique<SelectMenuCoursesFolderItem>(IsCurrentFolderYN::Yes));

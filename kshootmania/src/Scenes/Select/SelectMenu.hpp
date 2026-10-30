@@ -67,6 +67,9 @@ private:
 	// Library shown at the root when osu!/Etterna/StepMania folders are configured (empty = library list)
 	String m_currentLibraryId;
 
+	// Identifies the current menu contents, so the folder's glyphs are queued once per change
+	String m_glyphPrewarmSignature;
+
 	bool m_searchActive = false;
 
 	String m_searchQuery;
