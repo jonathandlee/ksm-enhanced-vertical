@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "SelectFolderState.hpp"
+#include "Common/ErrorReporting.hpp"
 #include "SelectHighScoreCache.hpp"
 #include "UI/ArrayWithLinearMenu.hpp"
 #include "SelectDifficultyMenu.hpp"
@@ -63,6 +64,8 @@ private:
 	std::shared_ptr<noco::Canvas> m_selectSceneCanvas;
 
 	SelectFolderState m_folderState;
+
+	Optional<ErrorReporting::Report> m_directoryLoadErrorPending;
 
 	// Library shown at the root when osu!/Etterna/StepMania folders are configured (empty = library list)
 	String m_currentLibraryId;

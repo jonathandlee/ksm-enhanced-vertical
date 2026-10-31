@@ -371,7 +371,7 @@ SelectScene::SelectScene(const Optional<SelectSceneSearchParams>& initialSearchP
 											 },
 											 [this](StringView msg)
 											 {
-												 m_dialogRunner = Co::Play<SimpleDialog>(String{ U"ERROR" }, String{ msg }).runScoped();
+												 m_dialogRunner = Co::Play<SimpleDialog>(String{ U"ERROR" }, String{ msg }, true).runScoped();
 											 },
 											 [this]()
 											 {

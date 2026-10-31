@@ -1,4 +1,5 @@
-﻿#include "Diagnostics/DiagnosticArguments.hpp"
+﻿#include "Common/ErrorReporting.hpp"
+#include "Diagnostics/DiagnosticArguments.hpp"
 #include "ksmaudio/Diagnostics.hpp"
 #include "Common/AudioOutputSettings.hpp"
 #include <Siv3D.hpp>
@@ -397,7 +398,7 @@ void KSMMain()
 	LicenseManager::DisableDefaultTrigger();
 
 	// ウィンドウタイトル
-	Window::SetTitle(U"K-Shoot Mania V2.1.0 - Enhanced Vertical Mod (Unofficial Build)");
+	Window::SetTitle(U"K-Shoot Mania V2.1.0 - Enhanced Vertical Mod 0.5.2-beta2 (Unofficial Build)");
 
 	// カレントディレクトリを設定
 	// (ChangeCurrentDirectoryはここ以外は基本的に使用禁止。どうしても使う必要がある場合は必ずResourceDirectoryPathに戻すこと)
@@ -662,7 +663,7 @@ void KSMMain()
 		const auto chartData = ChartIO::LoadChartData(testPlayArgs->chartFilePath);
 		if (chartData.error != kson::ErrorType::None)
 		{
-			MessageBoxUtils::ShowOK(I18n::Get(I18n::Play::ErrorChartLoadFailed), MessageBoxStyle::Error);
+			MessageBoxUtils::ShowOK(ErrorReporting::FormatMessage(ErrorReporting::Record(ErrorReporting::Stage::Chart, testPlayArgs->chartFilePath, Unicode::FromUTF8(kson::GetErrorString(chartData.error)), ErrorReporting::Reason::ChartFormat)), MessageBoxStyle::Error);
 			return;
 		}
 	}
@@ -1063,6 +1064,7 @@ void Main()
 	}
 	catch (const Error& e)
 	{
+		const auto report = ErrorReporting::Record(ErrorReporting::Stage::Game, U"", e.what());
 		ksmaudio::qa::Event("EXCEPTION", 0, 0, e.what().toUTF8());
 		ksmaudio::qa::Phase("exception.audio_cleanup");
 		Vertical::OptionsPresentation::Reset();
@@ -1077,25 +1079,27 @@ void Main()
 			TextWriter{ FsUtils::GetResourcePath(U"skin-test-failure.txt") }.writeln(e.what());
 			return;
 		}
-		MessageBoxUtils::ShowOK(e.what(), MessageBoxStyle::Error);
-		throw;
+		MessageBoxUtils::ShowOK(ErrorReporting::FormatMessage(report), MessageBoxStyle::Error);
+		return;
 	}
 	catch (const std::exception& e)
 	{
+		const auto report = ErrorReporting::Record(ErrorReporting::Stage::Game, U"", e);
 		ksmaudio::qa::Event("EXCEPTION", 0, 0, e.what());
 		ksmaudio::qa::Phase("exception.audio_cleanup");
 		Vertical::OptionsPresentation::Reset();
 		ksmaudio::Terminate();
-		MessageBoxUtils::ShowOK(Unicode::FromUTF8(e.what()), MessageBoxStyle::Error);
-		throw;
+		MessageBoxUtils::ShowOK(ErrorReporting::FormatMessage(report), MessageBoxStyle::Error);
+		return;
 	}
 	catch (...)
 	{
+		const auto report = ErrorReporting::Record(ErrorReporting::Stage::Game, U"", U"Unknown exception");
 		ksmaudio::qa::Event("EXCEPTION_UNKNOWN");
 		ksmaudio::qa::Phase("exception.audio_cleanup");
 		Vertical::OptionsPresentation::Reset();
 		ksmaudio::Terminate();
-		MessageBoxUtils::ShowOK(U"Unknown exception", MessageBoxStyle::Error);
-		throw;
+		MessageBoxUtils::ShowOK(ErrorReporting::FormatMessage(report), MessageBoxStyle::Error);
+		return;
 	}
 }

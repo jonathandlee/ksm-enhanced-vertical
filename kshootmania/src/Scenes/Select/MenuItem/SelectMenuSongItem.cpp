@@ -1,4 +1,5 @@
-﻿#include "Graphics/ExScorePanel.hpp"
+﻿#include "Common/ErrorReporting.hpp"
+#include "Graphics/ExScorePanel.hpp"
 #include "SelectMenuSongItem.hpp"
 #include "Graphics/FontUtils.hpp"
 #include "Scenes/Select/SelectDifficultyMenu.hpp"
@@ -92,7 +93,7 @@ void SelectMenuSongItem::decide(const SelectMenuEventContext& context, int32 dif
 	// 譜面ファイルの存在チェック
 	if (!FsUtils::ChartFileExists(chartFilePath))
 	{
-		context.fnShowErrorDialog(I18n::Get(I18n::Play::ErrorChartFileNotFound));
+		context.fnShowErrorDialog(ErrorReporting::FormatMessage(ErrorReporting::FileUnavailable(ErrorReporting::Stage::Chart, chartFilePath)));
 		return;
 	}
 
@@ -119,7 +120,7 @@ void SelectMenuSongItem::decideAutoPlay(const SelectMenuEventContext& context, i
 	// 譜面ファイルの存在チェック
 	if (!FsUtils::ChartFileExists(chartFilePath))
 	{
-		context.fnShowErrorDialog(I18n::Get(I18n::Play::ErrorChartFileNotFound));
+		context.fnShowErrorDialog(ErrorReporting::FormatMessage(ErrorReporting::FileUnavailable(ErrorReporting::Stage::Chart, chartFilePath)));
 		return;
 	}
 

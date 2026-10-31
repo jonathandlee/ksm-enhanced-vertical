@@ -3,6 +3,7 @@
 #include "Graphics/GlyphPrewarmer.hpp"
 
 #include "SelectMenu.hpp"
+#include "Common/SongLoadDiagnostics.hpp"
 #include <cassert>
 #include "kson/kson.hpp"
 #include "IR/IRHash.hpp"
@@ -493,19 +494,57 @@ bool SelectMenu::openDirectory(FilePathView directoryPath, PlaySeYN playSe, Refr
 	}
 
 	// ソートモードに応じて処理を分岐
+	SongLoadDiagnostics::Batch diagnostics;
 	bool result = false;
-	if (m_folderState.sortMode == SelectFolderState::SortMode::kLevel)
+	bool failed = false;
+	try
 	{
-		result = openDirectoryWithLevelSort(directoryPath);
+		if (m_folderState.sortMode == SelectFolderState::SortMode::kLevel)
+		{
+			result = openDirectoryWithLevelSort(directoryPath);
+		}
+		else
+		{
+			result = openDirectoryWithNameSort(directoryPath);
+		}
 	}
-	else
+	catch (const std::bad_alloc&)
 	{
-		result = openDirectoryWithNameSort(directoryPath);
+		throw;
+	}
+	catch (const std::exception& error)
+	{
+		m_directoryLoadErrorPending = SongLoadDiagnostics::Write(U"open directory", directoryPath, error);
+		failed = true;
+	}
+	catch (const Error& error)
+	{
+		m_directoryLoadErrorPending = SongLoadDiagnostics::Write(U"open directory", directoryPath, error.what());
+		failed = true;
 	}
 
 	if (!result)
 	{
+		if (failed)
+		{
+			openDirectoryWithNameSort(U"");
+			refreshContentCanvasParams();
+			this->refreshSongPreview();
+			// The owning scene is not fully constructed during initial loading.
+			// Display its error dialog on the first update, never in its constructor.
+		}
 		return false;
+	}
+
+	HashSet<FilePath> skipped;
+	for (const auto& report : diagnostics.reports)
+		if (report.stage == ErrorReporting::Stage::Metadata)
+			skipped.insert(report.path);
+	if (!skipped.empty())
+	{
+		auto report = ErrorReporting::Record(ErrorReporting::Stage::Directory, directoryPath,
+											 U"Some chart metadata could not be read; see preceding entries", ErrorReporting::Reason::ChartFormat, static_cast<int32>(skipped.size()));
+		m_directoryLoadErrorPending = std::move(report);
 	}
 
 	applySearchModeFilter();
@@ -950,6 +989,12 @@ SelectMenu::~SelectMenu() = default;
 
 void SelectMenu::update(SongPreviewOnlyYN songPreviewOnly)
 {
+	if (m_directoryLoadErrorPending)
+	{
+		const String message = ErrorReporting::FormatMessage(*m_directoryLoadErrorPending);
+		m_directoryLoadErrorPending.reset();
+		m_eventContext.fnShowErrorDialog(message);
+	}
 	if (songPreviewOnly)
 	{
 		// 楽曲プレビューのみ更新

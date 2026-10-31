@@ -78,6 +78,39 @@ namespace AssetManagement
 			FontAsset::Register(kFontAssetSystem, FontMethod::SDF, 44, Resource(fontPath), FontStyle::Default);
 			FontAsset::Register(kFontAssetSystemBold, FontMethod::SDF, 44, Resource(fontPath), FontStyle::Bold);
 #endif
+			// Keep the selected language's glyph shapes first. Fallback fonts only
+			// supply missing characters in song names; never rewrite their paths.
+			// (The CJK fallbacks use SDF too, for the same glyph-generation cost reason as above.)
+			static const Array<Font> fallbackFonts = []
+			{
+				Array<Font> fonts;
+				for (const auto path : { kFontResourcePathJa, kFontResourcePathSc, kFontResourcePathTc })
+				{
+#ifdef __linux
+					fonts.emplace_back(FontMethod::SDF, 44, Resource(U"resources/" + String{ path }));
+#else
+					fonts.emplace_back(FontMethod::SDF, 44, Resource(path));
+#endif
+				}
+				if (Font::IsAvailable(Typeface::CJK_Regular_KR))
+					fonts.emplace_back(FontMethod::SDF, 44, Typeface::CJK_Regular_KR);
+#ifdef _WIN32
+				const FilePath emojiPath = FileSystem::PathAppend(FileSystem::GetFolderPath(SpecialFolder::SystemFonts), U"seguiemj.ttf");
+				if (FileSystem::IsFile(emojiPath))
+					fonts.emplace_back(44, emojiPath);
+#endif
+				if (Font::IsAvailable(Typeface::ColorEmoji))
+					fonts.emplace_back(44, Typeface::ColorEmoji);
+				else if (Font::IsAvailable(Typeface::MonochromeEmoji))
+					fonts.emplace_back(44, Typeface::MonochromeEmoji);
+				return fonts;
+			}();
+			for (const auto& font : fallbackFonts)
+				if (font)
+				{
+					FontAsset(kFontAssetSystem).addFallback(font);
+					FontAsset(kFontAssetSystemBold).addFallback(font);
+				}
 		}
 	}
 

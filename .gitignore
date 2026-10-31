@@ -493,4 +493,5 @@ __pycache__/
 
 # Installer and release source documentation
 !/docs/MOD_INSTALLER*.md
-!/docs/RELEASE_0.5.1-beta1.md
+!/docs/RELEASE_*.md
+!/docs/review/*.md
