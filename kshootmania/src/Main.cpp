@@ -835,8 +835,12 @@ void KSMMain()
 	while (true)
 	{
 		ksmaudio::qa::FrameBegin();
-		if (!System::Update())
-			break;
+		{
+			// Includes the GPU present and the frame limiter's sleep (sleep_ms in the log)
+			const FrameLog::Scope frameLogScope{ "system.update" };
+			if (!System::Update())
+				break;
+		}
 		if (!FrameLog::EndFrame())
 			break;
 		AsyncTextureLoader::Update();

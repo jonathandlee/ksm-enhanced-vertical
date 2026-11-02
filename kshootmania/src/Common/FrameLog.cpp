@@ -7,7 +7,7 @@ namespace FrameLog
 {
 	namespace
 	{
-		constexpr size_t kMaxSections = 8;
+		constexpr size_t kMaxSections = 16;
 		struct Section
 		{
 			const char* label = nullptr;
@@ -48,7 +48,7 @@ namespace FrameLog
 		g_start = g_previous = std::chrono::steady_clock::now();
 		g_pendingSleepMs = 0.0;
 		g_records.clear();
-		g_records.reserve(1 << 20);
+		g_records.reserve(1 << 16);
 	}
 
 	bool Enabled()
@@ -103,11 +103,17 @@ namespace FrameLog
 		g_enabled = false;
 		{
 			TextWriter csv{ g_path };
-			csv.writeln(U"frame,time_ms,interval_ms,sleep_ms,work_ms,scene");
+			csv.writeln(U"frame,time_ms,interval_ms,sleep_ms,work_ms,scene,sections");
 			for (size_t i = 0; i < g_records.size(); ++i)
 			{
 				const auto& r = g_records[i];
-				csv.writeln(U"{},{:.3f},{:.3f},{:.3f},{:.3f},{}"_fmt(i, r.timeMs, r.intervalMs, r.sleepMs, r.intervalMs - r.sleepMs, Unicode::Widen(r.scene ? r.scene : "")));
+				String sections;
+				for (const auto& section : r.sections)
+				{
+					if (section.label)
+						sections += U"{}{}={:.3f}"_fmt(sections.isEmpty() ? U"" : U";", Unicode::Widen(section.label), section.ms);
+				}
+				csv.writeln(U"{},{:.3f},{:.3f},{:.3f},{:.3f},{},{}"_fmt(i, r.timeMs, r.intervalMs, r.sleepMs, r.intervalMs - r.sleepMs, Unicode::Widen(r.scene ? r.scene : ""), sections));
 			}
 		}
 

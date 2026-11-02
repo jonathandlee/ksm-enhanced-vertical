@@ -90,12 +90,12 @@ namespace MusicGame::Scroll
 	}
 
 	HighwayScrollContext::HighwayScrollContext(const HighwayScroll* pHighwayScroll, const kson::BeatInfo* pBeatInfo, const kson::TimingCache* pTimingCache, const GameStatus* pGameStatus)
-		: m_pHighwayScroll(pHighwayScroll)
-		, m_pBeatInfo(pBeatInfo)
-		, m_pTimingCache(pTimingCache)
-		, m_pGameStatus(pGameStatus)
-		, m_hasNegativeScrollSpeed(pHighwayScroll->hasNegativeScrollSpeed())
+		: m_pHighwayScroll(pHighwayScroll), m_pBeatInfo(pBeatInfo), m_pTimingCache(pTimingCache), m_pGameStatus(pGameStatus), m_hasNegativeScrollSpeed(pHighwayScroll->hasNegativeScrollSpeed()), m_isMonotonic(!m_hasNegativeScrollSpeed || pHighwayScroll->hispeedSetting().type == HispeedType::CMod)
 	{
+		if (!m_isMonotonic)
+		{
+			m_currentScrollIntegral = pHighwayScroll->scrollIntegralFromStart(pBeatInfo->scrollSpeed, pGameStatus->currentPulseDouble);
+		}
 	}
 
 	HighwayScrollContext::~HighwayScrollContext() = default;
@@ -148,6 +148,32 @@ namespace MusicGame::Scroll
 	bool HighwayScrollContext::hasNegativeScrollSpeed() const
 	{
 		return m_hasNegativeScrollSpeed;
+	}
+
+	bool HighwayScrollContext::isMonotonic() const
+	{
+		return m_isMonotonic;
+	}
+
+	kson::Pulse HighwayScrollContext::currentPulse() const
+	{
+		return m_pGameStatus->currentPulse;
+	}
+
+	bool HighwayScrollContext::mayBeInDrawRange(const Array<ScrollIntegralBounds>& bounds, std::size_t index, std::size_t laneSize, int32 marginPx) const
+	{
+		if (m_isMonotonic || bounds.size() != laneSize || index >= bounds.size())
+		{
+			return true;
+		}
+
+		// Same formula as HighwayScroll::getPositionY, before integer truncation (the margin absorbs that and
+		// the rounding difference between this integral and scrollSpeedIntegral(current, pulse))
+		const double pixelsPerRelPulse = m_pHighwayScroll->pixelsPerRelPulse();
+		const double baseY = static_cast<double>(Graphics::kHighwayTextureSize.y - Graphics::kJdglineYFromBottom);
+		const double topY = baseY - (bounds[index].max - m_currentScrollIntegral) * pixelsPerRelPulse;
+		const double bottomY = baseY - (bounds[index].min - m_currentScrollIntegral) * pixelsPerRelPulse;
+		return topY < Graphics::kHighwayTextureSize.y + marginPx && bottomY >= -marginPx;
 	}
 
 	bool HighwayScrollContext::isScrollSpeedPositiveAt(kson::Pulse pulse) const
@@ -299,6 +325,78 @@ namespace MusicGame::Scroll
 			m_scrollSpeedPulses.push_back(pulse);
 			m_scrollSpeedIntegralPrefixSums.push_back(prefixSum);
 		}
+
+		if (m_hasNegativeScrollSpeed)
+		{
+			// Sample the same pulses as HighwayScrollContext::isPulseRangeInDrawRange
+			const auto bounds = [&](kson::Pulse startPulse, kson::Pulse endPulse)
+			{
+				if (endPulse < startPulse)
+				{
+					std::swap(startPulse, endPulse);
+				}
+				ScrollIntegralBounds result;
+				result.min = result.max = scrollIntegralFromStart(scrollSpeed, static_cast<double>(startPulse));
+				const auto add = [&](kson::Pulse pulse)
+				{
+					const double value = scrollIntegralFromStart(scrollSpeed, static_cast<double>(pulse));
+					result.min = Min(result.min, value);
+					result.max = Max(result.max, value);
+				};
+				for (kson::Pulse pulse = startPulse + kDrawRangeSampleInterval; pulse < endPulse; pulse += kDrawRangeSampleInterval)
+				{
+					add(pulse);
+				}
+				add(endPulse);
+				return result;
+			};
+			const auto buildButtonLanes = [&](const auto& lanes, auto& output)
+			{
+				for (std::size_t laneIdx = 0; laneIdx < lanes.size(); ++laneIdx)
+				{
+					output[laneIdx].reserve(lanes[laneIdx].size());
+					for (const auto& [y, note] : lanes[laneIdx])
+					{
+						output[laneIdx].push_back(bounds(y, y + note.length));
+					}
+				}
+			};
+			buildButtonLanes(chartData.note.bt, m_btBounds);
+			buildButtonLanes(chartData.note.fx, m_fxBounds);
+			for (std::size_t laneIdx = 0; laneIdx < chartData.note.laser.size(); ++laneIdx)
+			{
+				m_laserBounds[laneIdx].reserve(chartData.note.laser[laneIdx].size());
+				for (const auto& [y, section] : chartData.note.laser[laneIdx])
+				{
+					m_laserBounds[laneIdx].push_back(bounds(y, section.v.empty() ? y : y + section.v.rbegin()->first));
+				}
+			}
+		}
+	}
+
+	double HighwayScroll::scrollIntegralFromStart(const kson::Graph& scrollSpeed, double pulse) const
+	{
+		return scrollSpeedIntegral(scrollSpeed, 0.0, pulse);
+	}
+
+	double HighwayScroll::pixelsPerRelPulse() const
+	{
+		return kBasePixels * m_hispeedFactor / kson::kResolution4;
+	}
+
+	const Array<ScrollIntegralBounds>& HighwayScroll::btBounds(std::size_t laneIdx) const
+	{
+		return m_btBounds[laneIdx];
+	}
+
+	const Array<ScrollIntegralBounds>& HighwayScroll::fxBounds(std::size_t laneIdx) const
+	{
+		return m_fxBounds[laneIdx];
+	}
+
+	const Array<ScrollIntegralBounds>& HighwayScroll::laserBounds(std::size_t laneIdx) const
+	{
+		return m_laserBounds[laneIdx];
 	}
 
 	void HighwayScroll::update(const HispeedSetting& hispeedSetting, double currentBPM)

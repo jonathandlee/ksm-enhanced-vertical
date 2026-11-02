@@ -423,6 +423,7 @@
     <ClInclude Include="src\Addon\CommonSEAddon.hpp" />
     <ClInclude Include="src\Addon\DisableIMEAddon.hpp" />
     <ClInclude Include="src\Common\AssetManagement.hpp" />
+    <ClInclude Include="src\Diagnostics\NoteRenderFixture.hpp" />
     <ClInclude Include="src\Diagnostics\UnicodePathFixture.hpp" />
     <ClInclude Include="src\Diagnostics\LaserRenderFixture.hpp" />
     <ClInclude Include="src\Diagnostics\ErrorReportFixture.hpp" />

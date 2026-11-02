@@ -26,6 +26,9 @@ namespace MusicGame::Graphics
 		constexpr double kLongNoteStartTextureY = 1.0;
 		constexpr int32 kLongNoteStartTextureHeight = 7;
 
+		// Pixels of slack for the precomputed-bounds pre-check (covers integer truncation in getPositionY)
+		constexpr int32 kCullMarginPx = 4;
+
 		double PressedLongNoteSourceY(double currentTimeSec)
 		{
 			return (MathUtils::WrappedFmod(currentTimeSec, 0.1) < 0.05) ? kLongNoteSourceYPressed1 : kLongNoteSourceYPressed2;
@@ -52,16 +55,33 @@ namespace MusicGame::Graphics
 			const Vec2 offsetPosition = kLanePositionOffset + (isBT ? kBTLanePositionDiff : kFXLanePositionDiff) * static_cast<double>(laneIdx);
 
 			// scroll_speedに負の値が含まれている場合は描画範囲外の判定を変更
-			const bool hasNegativeScrollSpeed = highwayScrollContext.hasNegativeScrollSpeed();
+			// (C-mod ignores scroll_speed, so positions stay in chart order there too)
+			const bool isMonotonic = highwayScrollContext.isMonotonic();
+			const auto& bounds = isBT ? highwayScrollContext.highwayScroll().btBounds(laneIdx) : highwayScrollContext.highwayScroll().fxBounds(laneIdx);
 
-			for (const auto& [y, note] : lane)
+			// Start near the judgment line instead of at the first note of the chart: every frame used to
+			// compute the position of every note already played, so the cost grew through the song.
+			auto itr = isMonotonic ? highwayScrollContext.firstDrawCandidate(lane, [](const auto& entry)
+																			 {
+																				 return entry.first + entry.second.length;
+																			 },
+																			 0)
+								   : lane.begin();
+			// (index is only used for the bounds, which apply only when starting at lane.begin())
+			for (std::size_t index = 0; itr != lane.end(); ++itr, ++index)
 			{
+				const auto& [y, note] = *itr;
+				if (!highwayScrollContext.mayBeInDrawRange(bounds, index, lane.size(), kCullMarginPx))
+				{
+					continue;
+				}
+
 				const int32 positionStartY = highwayScrollContext.getPositionY(y);
 
 				// 描画範囲外チェック
 				if (positionStartY < 0 || positionStartY >= kHighwayTextureSize.y)
 				{
-					if (!hasNegativeScrollSpeed && positionStartY < 0)
+					if (isMonotonic && positionStartY < 0)
 					{
 						// scroll_speedに負の値がなく、ノーツが上にある場合はループを抜ける
 						break;
@@ -123,7 +143,23 @@ namespace MusicGame::Graphics
 		const std::size_t numLanes = isBT ? kson::kNumBTLanesSZ : kson::kNumFXLanesSZ;
 
 		// scroll_speedに負の値が含まれている場合は描画範囲外の判定を変更
-		const bool hasNegativeScrollSpeed = highwayScrollContext.hasNegativeScrollSpeed();
+		// (C-mod ignores scroll_speed, so positions stay in chart order there too)
+		const bool isMonotonic = highwayScrollContext.isMonotonic();
+
+		// First note per lane that can be visible (see drawChipNotesCommon)
+		using LaneItr = kson::ByPulse<kson::Interval>::const_iterator;
+		static_assert(kson::kNumBTLanesSZ >= kson::kNumFXLanesSZ);
+		std::array<LaneItr, kson::kNumBTLanesSZ> firstItrs;
+		for (std::size_t laneIdx = 0; laneIdx < numLanes; ++laneIdx)
+		{
+			const auto& lane = isBT ? chartData.note.bt[laneIdx] : chartData.note.fx[laneIdx];
+			firstItrs[laneIdx] = isMonotonic ? highwayScrollContext.firstDrawCandidate(lane, [](const auto& entry)
+																					   {
+																						   return entry.first + entry.second.length;
+																					   },
+																					   0)
+											 : lane.begin();
+		}
 
 		const int32 numColumns = isBT ? kNumTextureColumnsMainSub : 1; // ロングBTノーツの場合はinvMultiply用のテクスチャ列が追加で存在する
 
@@ -140,13 +176,27 @@ namespace MusicGame::Graphics
 				const double centerSplitShiftX = Camera::CenterSplitShiftX(viewStatus.camStatus.centerSplit) * ((laneIdx >= numLanes / 2) ? 1 : -1);
 				const Vec2 offsetPosition = kLanePositionOffset + (isBT ? kBTLanePositionDiff : kFXLanePositionDiff) * laneIdx;
 
-				for (const auto& [y, note] : lane)
+				const auto& bounds = isBT ? highwayScrollContext.highwayScroll().btBounds(laneIdx) : highwayScrollContext.highwayScroll().fxBounds(laneIdx);
+				std::size_t index = 0; // only used for the bounds, which apply only when starting at lane.begin()
+				for (auto itr = firstItrs[laneIdx]; itr != lane.end(); ++itr, ++index)
 				{
+					const auto& [y, note] = *itr;
+					if (!highwayScrollContext.mayBeInDrawRange(bounds, index, lane.size(), kCullMarginPx))
+					{
+						continue;
+					}
+
 					const int32 positionStartY = highwayScrollContext.getPositionY(y);
-					if (!hasNegativeScrollSpeed && positionStartY < 0)
+					if (isMonotonic && positionStartY < 0)
 					{
 						// scroll_speedに負の値がない場合は、positionStartY < 0でループを抜ける
 						break;
+					}
+
+					if (note.length <= 0)
+					{
+						// Chip notes are drawn by drawChipNotesCommon (checked here rather than below to skip the range check)
+						continue;
 					}
 
 					const int32 positionEndY = note.length == 0 ? positionStartY : highwayScrollContext.getPositionY(y + note.length);
@@ -154,7 +204,7 @@ namespace MusicGame::Graphics
 					// ノーツ全体が描画範囲外の場合はスキップ
 					if (!highwayScrollContext.isPulseRangeInDrawRange(y, y + note.length))
 					{
-						if (!hasNegativeScrollSpeed && Max(positionStartY, positionEndY) < 0)
+						if (isMonotonic && Max(positionStartY, positionEndY) < 0)
 						{
 							// scroll_speedに負の値がなく、ノーツ全体が上にある場合はループを抜ける
 							break;
