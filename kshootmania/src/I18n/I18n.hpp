@@ -157,6 +157,7 @@ namespace I18n
 		TimingPosition,
 		TimingMsDisplay,
 		TimingMsColor,
+		TimingMsWord,
 		NoteSkin,
 		NoteSkinDefault,
 		NoteSkinNote,

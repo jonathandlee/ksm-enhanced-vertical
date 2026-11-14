@@ -562,7 +562,7 @@ void JudgeSettingOverlay::draw() const
 		m_menuPanel.resized(panel.size).draw(panel.pos);
 		label(side ? U"TIMING SETTING" : U"VISUAL SETTING", { panel.x + panel.w * .09, panel.y + panel.h * .062, panel.w * .82, panel.h * .066 }, panel.w * 12 / 170);
 	}
-	const std::array<StringView, 10> titles{ U"FAST/SLOW", U"JUDGE COLOR", U"±ms FAST/SLOW", U"±ms DISPLAY", U"TIMING POSITION", U"ALL Judge Offset", U"Note Visual Offset", U"Laser Judge Offset", U"SAVE", U"EXIT" };
+	const std::array<StringView, 10> titles{ U"FAST/SLOW", U"JUDGE COLOR", U"±ms COLOR", U"±ms DISPLAY", U"TIMING POSITION", U"ALL Judge Offset", U"Note Visual Offset", U"Laser Judge Offset", U"SAVE", U"EXIT" };
 	const std::array<StringView, 3> modes{ U"OFF", U"ORIGIN", U"NEW+" };
 	const auto& colors = MusicGame::kTimingColorLabels;
 	const auto& displays = MusicGame::kTimingDisplayLabels;

@@ -137,12 +137,14 @@ enum class TimingMsDisplay : int32
 	kCrit,
 	kCount
 };
+// Thresholds shared by ±ms COLOR (ms number color) and FAST/SLOW (when the FAST/SLOW word appears).
 enum class TimingMsColor : int32
 {
 	kOff = 0,
 	kNear,
 	kCrit,
 	kSixteenMs,
+	kAll,
 	kCount
 };
 

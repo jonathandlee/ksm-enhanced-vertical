@@ -92,7 +92,7 @@ namespace MusicGame
 		if (index == 1)
 			edit(values.hud.judgeColor, 1);
 		if (index == 2)
-			edit(values.hud.color, 3);
+			edit(values.hud.color, kTimingThresholdMax);
 		if (index == 3)
 			values.hud.display = TimingDisplayChoice(TimingDisplayCursor(values.hud.display) + delta);
 		if (index == 4)

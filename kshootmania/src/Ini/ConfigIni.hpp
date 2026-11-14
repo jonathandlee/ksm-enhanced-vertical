@@ -73,6 +73,7 @@ namespace ConfigIni
 		constexpr StringView kTimingPosition = U"timing_position";
 		constexpr StringView kTimingMsDisplay = U"timing_ms_display";
 		constexpr StringView kTimingMsColor = U"timing_ms_color";
+		constexpr StringView kTimingMsWord = U"timing_ms_word";
 		constexpr StringView kNoteSkin = U"noteskin";
 		constexpr StringView kBGMovie = U"backgroundmovie";
 

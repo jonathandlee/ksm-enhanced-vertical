@@ -74,7 +74,7 @@ namespace TimingHudFixture
 				for (double magnitude : { 0.0, 11.999, 12.0, 12.001, 15.999, 16.0, 16.001, 20.999, 21.0, 21.001, 43.999, 44.0, 44.001, 114.0, 150.0 })
 					for (double sign : { -1.0, 1.0 })
 						for (int display = 0; display < 4; ++display)
-							for (int color = 0; color < 4; ++color)
+							for (int color = 0; color < static_cast<int32>(TimingMsColor::kCount); ++color)
 							{
 								TimingHudSettings style;
 								style.judgeColor = palette;
@@ -82,9 +82,9 @@ namespace TimingHudFixture
 								style.color = static_cast<TimingMsColor>(color);
 								const auto view = PresentTiming(style, { result, magnitude * sign, 1 }, 1);
 								const bool show = display == 3 || (display == 1 && magnitude >= 44) || (display == 2 && magnitude > 21);
-								const bool tint = (color == 1 && magnitude >= 44) || (color == 2 && magnitude > 21) || (color == 3 && magnitude > 16);
+								const bool tint = (color == 1 && magnitude >= 44) || (color == 2 && magnitude > 21) || (color == 3 && magnitude > 16) || (color == 4 && magnitude > 0);
 								check(bool(view.ms) == show, U"OFF NEAR CRIT ALL numeric filter boundaries are independent of final judgment");
-								check(view.color == (tint ? JudgeDirectionColor(palette, sign > 0) : Color{ 178, 178, 178 }), U"OFF NEAR CRIT sixteen-ms color boundaries preserve both palettes");
+								check(view.color == (tint ? JudgeDirectionColor(palette, sign > 0) : Color{ 178, 178, 178 }), U"OFF NEAR CRIT sixteen-ms ALL color boundaries preserve both palettes");
 							}
 		for (int cursor = 0; cursor < 4; ++cursor)
 			check(TimingDisplayCursor(TimingDisplayChoice(cursor)) == cursor, U"display menu order round trips without changing persisted IDs");
@@ -148,12 +148,52 @@ namespace TimingHudFixture
 			check(!PresentTiming(style, *latest, 3).word, U"clearing state also removes retained word across pause or seek");
 		}
 
-		for (int cursor = 0; cursor < 9; ++cursor)
 		{
-			check(TimingMenuCursor(cursor, 1, false) == Max(cursor, 4) && TimingMenuCursor(cursor, -1, false) == Max(cursor, 4), U"hidden NEW+ rows cannot retain focus");
-			check(TimingMenuCursor(cursor, 1, true) == cursor, U"NEW+ enables all nine rows");
+			// FAST/SLOW word threshold: NEAR keeps the judgment-based rule, the others go by error size.
+			for (auto result : { JudgmentResult::kCritical, JudgmentResult::kNearFast, JudgmentResult::kNearSlow, JudgmentResult::kError })
+				for (double magnitude : { 0.0, 0.04, 11.999, 16.0, 16.001, 21.0, 21.001, 43.999, 44.0, 60.0 })
+					for (double sign : { -1.0, 1.0 })
+						for (int threshold = 0; threshold < static_cast<int32>(TimingMsColor::kCount); ++threshold)
+						{
+							TimingHudSettings style;
+							style.display = TimingMsDisplay::kAll;
+							style.word = static_cast<TimingMsColor>(threshold);
+							const auto view = PresentTiming(style, { result, magnitude * sign, 1 }, 1);
+							const bool rounded = std::round(magnitude * 10) != 0;
+							const bool expected = threshold == 1   ? (result != JudgmentResult::kCritical && magnitude != 0)
+												  : threshold == 2 ? rounded && magnitude > 21
+												  : threshold == 3 ? rounded && magnitude > 16
+																   : threshold == 4 && rounded;
+							check(bool(view.word) == expected, U"FAST/SLOW word follows OFF NEAR CRIT sixteen-ms ALL thresholds");
+							if (view.word)
+								check(view.word == (sign > 0 ? U"FAST" : U"SLOW"), U"FAST/SLOW word keeps the hit's direction");
+						}
+			TimingFeedbackState words;
+			TimingHudSettings style;
+			style.display = TimingMsDisplay::kAll;
+			style.word = TimingMsColor::kCrit;
+			words.offer(JudgmentResult::kCritical, 30);
+			words.commit(1, style.word);
+			words.offer(JudgmentResult::kCritical, -5);
+			auto latest = words.commit(1.1, style.word);
+			check(PresentTiming(style, *latest, 1.2).word == U"FAST", U"CRIT threshold keeps a CRITICAL's word through a following S-CRITICAL");
+			words.offer(JudgmentResult::kCritical, -30);
+			latest = words.commit(1.3, style.word);
+			check(PresentTiming(style, *latest, 1.4).word == U"SLOW", U"a newer qualifying hit replaces the kept word");
+			style.word = TimingMsColor::kOff;
+			check(!PresentTiming(style, *latest, 1.4).word, U"OFF hides the FAST/SLOW word, even a kept one");
+			style.word = TimingMsColor::kNear;
+			words.clear();
+			words.offer(JudgmentResult::kCritical, 30);
+			latest = words.commit(2);
+			check(!PresentTiming(style, *latest, 2.1).word, U"default NEAR threshold keeps CRITICAL hits word-free as before");
 		}
-		check(TimingMenuCursor(4 - 1, -1, true) == 3 && TimingMenuCursor(3 + 1, 1, true) == 4, U"ASSIST TICK and TIMING POSITION are adjacent");
+		for (int cursor = 0; cursor <= kTimingMenuLastRow; ++cursor)
+		{
+			check(TimingMenuCursor(cursor, 1, false) == Max(cursor, kTimingMenuFirstCommonRow) && TimingMenuCursor(cursor, -1, false) == Max(cursor, kTimingMenuFirstCommonRow), U"hidden NEW+ rows cannot retain focus");
+			check(TimingMenuCursor(cursor, 1, true) == cursor, U"NEW+ enables all ten rows");
+		}
+		check(TimingMenuCursor(kTimingMenuFirstCommonRow - 1, -1, true) == kTimingMenuFirstCommonRow - 1 && TimingMenuCursor(kTimingMenuFirstCommonRow, 1, true) == kTimingMenuFirstCommonRow, U"ASSIST TICK and TIMING POSITION are adjacent");
 		for (auto palette : { JudgeColor::kFastBlue, JudgeColor::kFastRed })
 		{
 			TimingHudSettings style;

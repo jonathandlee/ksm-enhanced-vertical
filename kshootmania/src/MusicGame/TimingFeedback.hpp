@@ -11,12 +11,41 @@ namespace MusicGame
 		JudgeColor judgeColor = JudgeColor::kFastBlue;
 		TimingPosition position = TimingPosition::kUpperPlus;
 		TimingMsDisplay display = TimingMsDisplay::kCrit;
-		TimingMsColor color = TimingMsColor::kCrit;
+		TimingMsColor color = TimingMsColor::kCrit; // ±ms COLOR: when the ms number is colored
+		TimingMsColor word = TimingMsColor::kNear;	// FAST/SLOW: when the FAST/SLOW word appears (same thresholds)
 	};
 	// Saved enum IDs remain stable; menu order is independent of persisted values.
 	inline constexpr std::array<TimingMsDisplay, 4> kTimingDisplayChoices{ TimingMsDisplay::kOff, TimingMsDisplay::kNear, TimingMsDisplay::kCrit, TimingMsDisplay::kAll };
 	inline constexpr std::array<StringView, 4> kTimingDisplayLabels{ U"OFF", U"NEAR", U"CRIT", U"ALL" };
-	inline constexpr std::array<StringView, 4> kTimingColorLabels{ U"OFF", U"NEAR", U"CRIT", U"±16ms" };
+	// Shared by ±ms COLOR and FAST/SLOW, which use the same thresholds.
+	inline constexpr std::array<StringView, 5> kTimingColorLabels{ U"OFF", U"NEAR", U"CRIT", U"±16ms", U"ALL" };
+	inline constexpr int32 kTimingThresholdMax = static_cast<int32>(TimingMsColor::kCount) - 1;
+	/// Whether a timing error of this size passes a NEAR / CRIT / ±16ms / ALL threshold.
+	inline bool MeetsTimingThreshold(TimingMsColor threshold, double signedMs)
+	{
+		const double magnitude = std::abs(signedMs);
+		switch (threshold)
+		{
+		case TimingMsColor::kNear:
+			return magnitude >= Judgment::TimingWindow::ChipNote::kWindowSecCritical * 1000.0;
+		case TimingMsColor::kCrit:
+			return magnitude > Judgment::kPerfectCriticalWindowMs;
+		case TimingMsColor::kSixteenMs:
+			return magnitude > 16.0;
+		case TimingMsColor::kAll:
+			return true;
+		default:
+			return false;
+		}
+	}
+	/// Whether a hit shows the FAST/SLOW word. NEAR keeps the original judgment-based rule (NEAR and
+	/// ERROR results, which also covers promoted FX timing); the others go by the size of the error.
+	inline bool ShowsTimingWord(TimingMsColor threshold, Judgment::JudgmentResult result, double signedMs)
+	{
+		if (threshold == TimingMsColor::kNear)
+			return result != Judgment::JudgmentResult::kCritical && signedMs != 0;
+		return std::round(signedMs * 10) != 0 && MeetsTimingThreshold(threshold, signedMs);
+	}
 	inline int32 TimingDisplayCursor(TimingMsDisplay value)
 	{
 		for (int32 i = 0; i < 4; ++i)
@@ -69,13 +98,14 @@ namespace MusicGame
 			if (!m_pending || std::abs(*ms) > std::abs(m_pending->signedMs))
 				m_pending = TimingFeedback{ result, *ms, 0 };
 		}
-		Optional<TimingFeedback> commit(double now)
+		// wordThreshold is the FAST/SLOW setting: a hit that passes it becomes the word kept on screen.
+		Optional<TimingFeedback> commit(double now, TimingMsColor wordThreshold = TimingMsColor::kNear)
 		{
 			if (m_pending)
 			{
 				m_latest = m_pending;
 				m_latest->displayedAt = now;
-				if (m_pending->result != Judgment::JudgmentResult::kCritical && m_pending->signedMs != 0)
+				if (ShowsTimingWord(wordThreshold, m_pending->result, m_pending->signedMs))
 					m_word = TimingWordFeedback{ m_pending->signedMs, now };
 				m_pending.reset();
 			}
@@ -112,13 +142,17 @@ namespace MusicGame
 		if (!std::isfinite(event.signedMs))
 			return view;
 		view.alpha = TimingOpacity(now - event.displayedAt);
-		const bool isNear = IsTimingNear(event.result);
 		const double magnitude = std::abs(event.signedMs);
 		const bool nearRange = magnitude >= Judgment::TimingWindow::ChipNote::kWindowSecCritical * 1000.0;
 		const bool critRange = magnitude > Judgment::kPerfectCriticalWindowMs;
-		Optional<TimingWordFeedback> word = event.retainedWord;
-		if (!word && (isNear || event.result == Judgment::JudgmentResult::kError) && event.signedMs != 0)
-			word = TimingWordFeedback{ event.signedMs, event.displayedAt };
+		// The kept word comes from TimingFeedbackState::commit, which applies the same FAST/SLOW threshold.
+		Optional<TimingWordFeedback> word;
+		if (settings.word != TimingMsColor::kOff)
+		{
+			word = event.retainedWord;
+			if (!word && ShowsTimingWord(settings.word, event.result, event.signedMs))
+				word = TimingWordFeedback{ event.signedMs, event.displayedAt };
+		}
 		if (word)
 		{
 			view.wordAlpha = TimingOpacity(now - word->displayedAt);
@@ -130,8 +164,8 @@ namespace MusicGame
 		{
 			view.ms = std::round(event.signedMs * 10) == 0 ? U"0.0ms" : U"{:+.1f}ms"_fmt(event.signedMs);
 		}
-		const bool colored = (settings.color == TimingMsColor::kNear && nearRange) || (settings.color == TimingMsColor::kCrit && critRange) || (settings.color == TimingMsColor::kSixteenMs && magnitude > 16.0);
-		if (colored && event.signedMs != 0)
+		// Rounded like the text, so a value shown as "0.0ms" is never colored.
+		if (MeetsTimingThreshold(settings.color, event.signedMs) && std::round(event.signedMs * 10) != 0)
 			view.color = JudgeDirectionColor(settings.judgeColor, event.signedMs > 0);
 		return view;
 	}
@@ -140,9 +174,12 @@ namespace MusicGame
 		constexpr std::array<double, 4> y{ 78, 169, 299, 411 };
 		return y[Clamp(static_cast<int32>(position), 0, 3)];
 	}
+	// BT-C rows: 0 JUDGE COLOR, 1-4 the NEW+ timing rows, then ASSIST TICK (5) .. MOVIE (9).
+	inline constexpr int32 kTimingMenuFirstCommonRow = 5;
+	inline constexpr int32 kTimingMenuLastRow = 9;
 	// Shared by navigation and tests, so disabled settings cannot receive a cursor.
 	inline int32 TimingMenuCursor(int32 cursor, int32 /* delta */, bool newMode)
 	{
-		return Clamp(cursor, newMode ? 0 : 4, 8);
+		return Clamp(cursor, newMode ? 0 : kTimingMenuFirstCommonRow, kTimingMenuLastRow);
 	}
 }

@@ -137,7 +137,8 @@ namespace RuntimeConfig
 			.judgeColor = ConfigIni::GetInt(ConfigIni::Key::kJudgeColor, 0) == 1 ? JudgeColor::kFastRed : JudgeColor::kFastBlue,
 			.position = static_cast<TimingPosition>(Clamp(ConfigIni::GetInt(ConfigIni::Key::kTimingPosition, 0), 0, 3)),
 			.display = static_cast<TimingMsDisplay>(Clamp(ConfigIni::GetInt(ConfigIni::Key::kTimingMsDisplay, 3), 0, 3)),
-			.color = static_cast<TimingMsColor>(Clamp(ConfigIni::GetInt(ConfigIni::Key::kTimingMsColor, 2), 0, 3))
+			.color = static_cast<TimingMsColor>(Clamp(ConfigIni::GetInt(ConfigIni::Key::kTimingMsColor, 2), 0, MusicGame::kTimingThresholdMax)),
+			.word = static_cast<TimingMsColor>(Clamp(ConfigIni::GetInt(ConfigIni::Key::kTimingMsWord, 1), 0, MusicGame::kTimingThresholdMax))
 		};
 	}
 }

@@ -133,7 +133,9 @@ namespace JudgeSettingFixture
 				state.change(3, 1);
 				state.change(2, 1);
 			}
-			check(state.values.hud.display == TimingMsDisplay::kAll && state.values.hud.color == TimingMsColor::kSixteenMs, U"last display and color choices clamp at their upper bounds");
+			state.change(3, 20);
+			state.change(2, 20);
+			check(state.values.hud.display == TimingMsDisplay::kAll && state.values.hud.color == TimingMsColor::kAll, U"last display and color choices clamp at their upper bounds");
 			state.change(3, -20);
 			state.change(2, -20);
 			check(state.values.hud.display == TimingMsDisplay::kOff && state.values.hud.color == TimingMsColor::kOff, U"first display and color choices clamp at OFF");
