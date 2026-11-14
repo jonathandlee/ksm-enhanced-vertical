@@ -12,6 +12,10 @@ namespace SkinPreset
 		Settings g_currentSettings;
 		HashTable<String, FilePath> g_resolvedImagePaths;
 		Array<String> g_registeredTextureNames;
+		// Names backed by a "<stem>_random/" folder: resolved afresh on every texture load.
+		HashSet<String> g_randomNames;
+		HashTable<String, FilePath> g_lastRandomPick;
+		constexpr std::array<StringView, 6> kImageExtensions{ U"png", U"jpg", U"jpeg", U"gif", U"bmp", U"webp" };
 		template <class T>
 		T Read(const JSON& json, StringView key, const T& fallback)
 		{
@@ -56,6 +60,81 @@ namespace SkinPreset
 			if (!FileSystem::IsFile(path) && !Image{ size, Palette::Yellow }.save(path))
 				throw Error{ U"Cannot create missing-image placeholder: " + String{ name } };
 			return path;
+		}
+		// "bg2.jpg" -> "bg2"
+		String StemOf(StringView name)
+		{
+			const size_t slash = name.lastIndexOf(U'/');
+			const size_t dot = name.lastIndexOf(U'.');
+			if (dot == StringView::npos || (slash != StringView::npos && dot < slash))
+				return String{ name };
+			return String{ name.substr(0, dot) };
+		}
+		// The folder holding a skin's images: the base imgs/ folder for "default", skins/<name>/ otherwise.
+		FilePath SkinDirectory(StringView folder)
+		{
+			return folder == U"default" ? GetBaseImageDirectory() : FileSystem::PathAppend(GetUserSkinDirectory(), folder + U"/");
+		}
+		// Exact file, else the same name with any other image extension (bg2.jpg -> bg2.png).
+		FilePath FindImage(StringView folder, StringView name)
+		{
+			const auto exact = FileSystem::PathAppend(SkinDirectory(folder), name);
+			if (FileSystem::IsFile(exact))
+				return exact;
+			const String stem = StemOf(name);
+			for (const auto ext : kImageExtensions)
+			{
+				const auto candidate = FileSystem::PathAppend(SkinDirectory(folder), stem + U"." + ext);
+				if (FileSystem::IsFile(candidate))
+					return candidate;
+			}
+			return {};
+		}
+		// The vertical title draws its menu sprites over standby_vertical.png. Skins that paint their menu
+		// labels into a landscape title background ship see-through standby_item/standby_cur sprites, so
+		// when such a skin has no vertical background (and the default one is used), its sprites would
+		// be invisible. These names take their sprites from whichever skin supplied the background.
+		struct VerticalCompanion
+		{
+			StringView name;
+			StringView anchor;
+			StringView base;
+		};
+		constexpr std::array<VerticalCompanion, 2> kVerticalCompanions{ {
+			{ U"standby_item_vertical.gif", U"standby_vertical.png", U"standby_item.gif" },
+			{ U"standby_cur_vertical.gif", U"standby_vertical.png", U"standby_cur.gif" },
+		} };
+		FilePath RandomImageDirectory(StringView folder, StringView name)
+		{
+			return FileSystem::PathAppend(SkinDirectory(folder), StemOf(name) + U"_random/");
+		}
+		// A "<stem>_random/" folder (e.g. skins/<skin>/bg2_random/) supplies a random image per reroll.
+		FilePath PickRandomImage(StringView folder, StringView name)
+		{
+			const auto dir = RandomImageDirectory(folder, name);
+			if (!FileSystem::IsDirectory(dir))
+				return {};
+			Array<FilePath> candidates;
+			for (const auto& path : FileSystem::DirectoryContents(dir, Recursive::No))
+				if (FileSystem::IsFile(path) && IsImage(path) && ImageDecoder::GetImageInfo(path))
+					candidates << path;
+			if (candidates.isEmpty())
+				return {};
+			// Avoid showing the same image twice in a row when there is a choice.
+			if (candidates.size() > 1)
+				if (const auto it = g_lastRandomPick.find(String{ name }); it != g_lastRandomPick.end())
+					candidates.remove(it->second);
+			return candidates.choice();
+		}
+	}
+
+	void RerollRandomImages()
+	{
+		for (const auto& name : g_randomNames)
+		{
+			noco::Asset::UnloadTexture(U"imgs/" + name);
+			if (TextureAsset::IsRegistered(name))
+				TextureAsset::Release(name);
 		}
 	}
 
@@ -170,6 +249,8 @@ namespace SkinPreset
 			settings.folder = U"default";
 		g_currentSettings = settings;
 		g_resolvedImagePaths.clear();
+		g_randomNames.clear();
+		g_lastRandomPick.clear();
 		noco::Asset::SetTextureLoader([](FilePathView path, noco::MipmapEnabledYN mip)
 									  {
 										  String normalized{ path };
@@ -183,13 +264,64 @@ namespace SkinPreset
 	FilePath Resolve(FilePathView logicalPath)
 	{
 		const String name = GetLogicalImagePath(logicalPath);
+		const String& folder = g_currentSettings.folder;
+		// Random picks are never cached, so RerollRandomImages() can choose again on the next load.
+		if (g_randomNames.contains(name))
+		{
+			for (const auto& candidateFolder : { folder, String{ U"default" } })
+			{
+				if (const auto random = PickRandomImage(candidateFolder, name); !random.isEmpty())
+				{
+					g_lastRandomPick[name] = random;
+					return random;
+				}
+			}
+			g_randomNames.erase(name); // the folder was emptied; fall back to the normal lookup
+		}
+		// Cached lookups touch no files: song select resolves skin jackets and icons on every cursor move.
 		if (const auto it = g_resolvedImagePaths.find(name); it != g_resolvedImagePaths.end())
 			return it->second;
-		const auto base = FileSystem::PathAppend(GetBaseImageDirectory(), name);
-		const auto selected = g_currentSettings.folder == U"default" ? base : FileSystem::PathAppend(GetUserSkinDirectory(), g_currentSettings.folder + U"/" + name);
-		// Unknown legacy background/icon names retain the original caller's fallback.
-		if (!FileSystem::IsFile(base) && !FileSystem::IsFile(selected))
-			return selected;
+		for (const auto& companion : kVerticalCompanions)
+		{
+			if (name != companion.name)
+				continue;
+			// A skin may ship the companion sprite itself.
+			if (folder != U"default")
+			{
+				if (const auto own = FindImage(folder, name); !own.isEmpty())
+					return g_resolvedImagePaths[name] = own;
+			}
+			const bool skinHasAnchor = folder != U"default" && !FindImage(folder, companion.anchor).isEmpty();
+			FilePath path = FindImage(skinHasAnchor ? folder : String{ U"default" }, companion.base);
+			if (path.isEmpty())
+				path = FindImage(U"default", companion.base);
+			return g_resolvedImagePaths[name] = path;
+		}
+		// First lookup of this name: a skin's random folder wins, then its own file, then default's random folder.
+		for (const auto& candidateFolder : { folder, String{ U"default" } })
+		{
+			if (FileSystem::IsDirectory(RandomImageDirectory(candidateFolder, name)))
+			{
+				if (const auto random = PickRandomImage(candidateFolder, name); !random.isEmpty())
+				{
+					g_randomNames.insert(name);
+					g_lastRandomPick[name] = random;
+					return random;
+				}
+			}
+			if (candidateFolder != U"default" && !FindImage(candidateFolder, name).isEmpty())
+				break;
+		}
+		FilePath base = FindImage(U"default", name);
+		FilePath selected = folder == U"default" ? base : FindImage(folder, name);
+		// Unknown legacy background/icon names retain the original caller's fallback. Cached as well,
+		// so a missing image is not searched for again under every extension on each lookup.
+		if (base.isEmpty() && selected.isEmpty())
+			return g_resolvedImagePaths[name] = FileSystem::PathAppend(SkinDirectory(folder), name);
+		if (base.isEmpty())
+			base = FileSystem::PathAppend(GetBaseImageDirectory(), name);
+		if (selected.isEmpty())
+			selected = FileSystem::PathAppend(SkinDirectory(folder), name);
 		FilePath path;
 		// Decode validation also treats corrupt images as missing, once per selection.
 		if (FileSystem::IsFile(selected) && !Image{ selected }.isEmpty())
@@ -250,6 +382,8 @@ namespace SkinPreset
 		if (!imagesChanged)
 			return; // Numeric edits never re-register textures or disturb playback.
 		g_resolvedImagePaths.clear();
+		g_randomNames.clear();
+		g_lastRandomPick.clear();
 		noco::Asset::UnloadAllTextures();
 		RegisterTextures();
 	}

@@ -25,6 +25,7 @@ namespace
 
 	std::shared_ptr<noco::Canvas> LoadResultSceneCanvas()
 	{
+		SkinPreset::RerollRandomImages();
 		const FilePath uiFilePath = GetResultSceneUIFilePath();
 		const auto canvas = noco::Canvas::LoadFromFile(uiFilePath);
 		if (!canvas)

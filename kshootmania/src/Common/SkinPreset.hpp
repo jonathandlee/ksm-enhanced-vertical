@@ -74,6 +74,8 @@ namespace SkinPreset
 	FilePath Resolve(FilePathView logicalPath);
 	Texture LoadTexture(FilePathView logicalPath, TextureDesc desc = TextureDesc::Unmipped);
 	void RegisterTextures();
+	// Picks new images for names backed by a "<stem>_random/" folder (call before loading a scene).
+	void RerollRandomImages();
 	inline constexpr double kVerticalLaserPercent = 100.0 * 8.0 / 11.0;
 	double StepLaserPercent(double value, int32 direction);
 }
