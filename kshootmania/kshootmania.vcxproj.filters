@@ -1,6 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="Header Files\Diagnostics">
+      <UniqueIdentifier>{53d20487-81ea-4b1e-a596-11c07f348c3c}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source Files">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
@@ -1263,6 +1266,9 @@
     </ClInclude>
     <ClInclude Include="src\Common\AssetManagement.hpp">
       <Filter>Header Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Diagnostics\NoteRenderFixture.hpp">
+      <Filter>Header Files\Diagnostics</Filter>
     </ClInclude>
     <ClInclude Include="src\Common\Encoding.hpp">
       <Filter>Header Files\Common</Filter>

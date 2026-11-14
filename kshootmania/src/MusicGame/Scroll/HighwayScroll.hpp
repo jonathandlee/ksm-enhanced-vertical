@@ -11,6 +11,14 @@ namespace MusicGame::Scroll
 {
 	class HighwayScroll;
 
+	/// @brief Smallest and largest scroll_speed integral (from pulse 0) over the pulses that
+	///        isPulseRangeInDrawRange samples for one note or laser section
+	struct ScrollIntegralBounds
+	{
+		double min = 0.0;
+		double max = 0.0;
+	};
+
 	/// @brief HighwayScrollのコンテキスト
 	class HighwayScrollContext
 	{
@@ -22,6 +30,12 @@ namespace MusicGame::Scroll
 
 		/// @brief scrollSpeedに負の値が含まれているか
 		const bool m_hasNegativeScrollSpeed;
+
+		/// @brief Y positions only move one way along the chart (no negative scroll_speed, or C-mod, which ignores it)
+		const bool m_isMonotonic;
+
+		/// @brief scroll_speed integral at the current pulse (only computed when bounds culling is used)
+		double m_currentScrollIntegral = 0.0;
 
 		// A draw context is thread-confined. Reuse exact positions within that
 		// frame, with bounded storage and no allocation or timing quantization.
@@ -74,6 +88,39 @@ namespace MusicGame::Scroll
 		/// @return 負の値が含まれていればtrue
 		bool hasNegativeScrollSpeed() const;
 
+		/// @brief Whether Y positions only move one way along the chart. When true, a note above the
+		///        highway means every later note is too, and notes far enough below it can be skipped.
+		bool isMonotonic() const;
+
+		/// @brief The current pulse (as used for the judgment line position)
+		kson::Pulse currentPulse() const;
+
+		/// @brief Cheap pre-check for non-monotonic scrolling: false only when the item's precomputed bounds
+		///        put every sampled point at least marginPx outside the highway, so the exact check would fail too.
+		/// @param bounds Bounds of every item in the lane, in lane order (see HighwayScroll::btBounds etc.)
+		/// @param index Index of the item in its lane
+		/// @param laneSize Size of the lane; bounds built for a different chart are ignored
+		bool mayBeInDrawRange(const Array<ScrollIntegralBounds>& bounds, std::size_t index, std::size_t laneSize, int32 marginPx) const;
+
+		/// @brief First item of a lane that can be visible when scrolling is monotonic. Earlier items end
+		///        below the highway (by more than marginPx), so the exact checks would skip them anyway.
+		/// @param endPulse Returns the last pulse drawn for an item (start + length)
+		template <typename Lane, typename EndPulse>
+		auto firstDrawCandidate(const Lane& lane, EndPulse endPulse, int32 marginPx) const
+		{
+			auto itr = lane.upper_bound(currentPulse());
+			while (itr != lane.begin())
+			{
+				const auto prev = std::prev(itr);
+				if (getPositionY(endPulse(*prev)) >= Graphics::kHighwayTextureSize.y + marginPx)
+				{
+					break;
+				}
+				itr = prev;
+			}
+			return itr;
+		}
+
 		/// @brief 指定したPulse位置でのscrollSpeedが正であるかを返す
 		/// @param pulse Pulse位置
 		/// @return scrollSpeedが0以上ならtrue
@@ -104,6 +151,13 @@ namespace MusicGame::Scroll
 
 		/// @brief scrollSpeedのグラフ点間の積分値をグラフ先頭から累積した値
 		Array<double> m_scrollSpeedIntegralPrefixSums;
+
+		/// @brief Per-note/section scroll_speed integral bounds, in lane order. Only built when scroll_speed
+		///        goes negative: notes then can't be culled by position order, and checking every note's exact
+		///        position each frame costs milliseconds on long charts.
+		std::array<Array<ScrollIntegralBounds>, kson::kNumBTLanesSZ> m_btBounds;
+		std::array<Array<ScrollIntegralBounds>, kson::kNumFXLanesSZ> m_fxBounds;
+		std::array<Array<ScrollIntegralBounds>, kson::kNumLaserLanesSZ> m_laserBounds;
 
 		/// @brief ハイスピード設定
 		HispeedSetting m_hispeedSetting;
@@ -176,6 +230,17 @@ namespace MusicGame::Scroll
 		/// @brief scrollSpeedに負の値が含まれているかを返す
 		/// @return 負の値が含まれていればtrue
 		bool hasNegativeScrollSpeed() const;
+
+		/// @brief scroll_speed integral from pulse 0 (the quantity getPositionY uses, before scaling)
+		double scrollIntegralFromStart(const kson::Graph& scrollSpeed, double pulse) const;
+
+		/// @brief Pixels per unit of scroll_speed integral at the current hispeed
+		double pixelsPerRelPulse() const;
+
+		/// @brief Precomputed culling bounds (empty unless scroll_speed goes negative)
+		const Array<ScrollIntegralBounds>& btBounds(std::size_t laneIdx) const;
+		const Array<ScrollIntegralBounds>& fxBounds(std::size_t laneIdx) const;
+		const Array<ScrollIntegralBounds>& laserBounds(std::size_t laneIdx) const;
 
 		/// @brief ハイスピード設定を返す
 		/// @return ハイスピード設定

@@ -9,6 +9,7 @@
 #include "MusicGame/Graphics/GraphicsDefines.hpp"
 
 #include "Vertical/VerticalLaneGeometry.hpp"
+#include <limits>
 
 namespace MusicGame::Graphics
 
@@ -63,6 +64,12 @@ namespace MusicGame::Graphics
 		constexpr int32 kLaserShiftY = -6;
 
 		constexpr double kLaserCriticalBlinkIntervalSec = 0.12;
+		// Marks a point whose position hasn't been computed yet in DrawLaserSection's cache
+		constexpr int32 kUncachedPositionY = std::numeric_limits<int32>::min();
+
+		// Slack for skipping sections before their exact check: the start texture reaches kLaserStartTextureSize.y
+		// past the start, and a slam's tail kLaserSlamHeightMax + kLaserTailHeightMax past the end
+		constexpr int32 kLaserCullMarginPx = kLaserStartTextureSize.y + kLaserSlamHeightMax + kLaserTailHeightMax + 16;
 
 		enum class JudgmentStatus
 
@@ -409,7 +416,10 @@ namespace MusicGame::Graphics
 
 		/// @remark レンダーターゲットは呼び出し側で設定しておくこと
 
-		void DrawLaserSection(int32 laneIdx, kson::Pulse y, const kson::LaserSection& laserSection, const HashSet<kson::Pulse>& curvedPulses, const Scroll::HighwayScrollContext& highwayScrollContext, const Texture& laserNoteTexture, int32 laserNoteTextureRow, const TextureRegion& laserStartTexture)
+		/// @param pointY Cache of the Y position (getPositionY + kLaserShiftY) of every point in laserSection.v, in order;
+		///               kUncachedPositionY entries are computed on first use, so both texture passes share them
+		/// @param isMonotonic Whether Y positions only move one way (see HighwayScrollContext::isMonotonic)
+		void DrawLaserSection(int32 laneIdx, kson::Pulse y, const kson::LaserSection& laserSection, int32* pointY, bool isMonotonic, const HashSet<kson::Pulse>& curvedPulses, const Scroll::HighwayScrollContext& highwayScrollContext, const Texture& laserNoteTexture, int32 laserNoteTextureRow, const TextureRegion& laserStartTexture)
 
 		{
 
@@ -421,19 +431,27 @@ namespace MusicGame::Graphics
 
 			const Transformer2D transformer(Mat3x2::Translate(wide ? kLaserPositionOffsetWide : kLaserPositionOffsetNormal));
 
-			// scroll_speedに負の値が含まれている場合は過去の点も描画範囲に入る可能性がある
-
-			const bool hasNegativeScrollSpeed = highwayScrollContext.hasNegativeScrollSpeed();
+			const auto positionAt = [&](std::size_t idx, kson::RelPulse relPulse)
+			{
+				int32& cached = pointY[idx];
+				if (cached == kUncachedPositionY)
+				{
+					cached = highwayScrollContext.getPositionY(y + relPulse) + kLaserShiftY;
+				}
+				return cached;
+			};
 
 			// LASERセクション内の各点をもとに描画
 
-			for (auto itr = laserSection.v.begin(); itr != laserSection.v.end(); ++itr)
+			// (pointIdx follows itr; positions come from the cache instead of recomputing getPositionY)
+			std::size_t pointIdx = 0;
+			for (auto itr = laserSection.v.begin(); itr != laserSection.v.end(); ++itr, ++pointIdx)
 
 			{
 
 				const auto& [ry, point] = *itr;
 
-				const int32 positionY = highwayScrollContext.getPositionY(y + ry) + kLaserShiftY;
+				const int32 positionY = positionAt(pointIdx, ry);
 
 				const bool isSlam = point.v.v != point.v.vf;
 
@@ -451,11 +469,12 @@ namespace MusicGame::Graphics
 
 					// 後続の直角が分厚さの内側に隠れて消えないよう、その直角までの画面距離の一定割合を分厚さの上限とする
 
-					for (auto capItr = std::next(itr); capItr != laserSection.v.end(); ++capItr)
+					std::size_t capIdx = pointIdx + 1;
+					for (auto capItr = std::next(itr); capItr != laserSection.v.end(); ++capItr, ++capIdx)
 
 					{
 
-						const int32 capPositionY = highwayScrollContext.getPositionY(y + capItr->first) + kLaserShiftY;
+						const int32 capPositionY = positionAt(capIdx, capItr->first);
 
 						const int32 distanceY = positionY - capPositionY;
 
@@ -545,13 +564,14 @@ namespace MusicGame::Graphics
 
 						const int32 slamTopY = positionY - slamHeight;
 
-						for (auto refItr = std::next(itr); refItr != laserSection.v.end(); ++refItr)
+						std::size_t refIdx = pointIdx + 1;
+						for (auto refItr = std::next(itr); refItr != laserSection.v.end(); ++refItr, ++refIdx)
 
 						{
 
 							const auto& [refRy, refPoint] = *refItr;
 
-							const int32 refPositionY = highwayScrollContext.getPositionY(y + refRy) + kLaserShiftY;
+							const int32 refPositionY = positionAt(refIdx, refRy);
 
 							// 直角の分厚さの内側にある点は飛ばす
 
@@ -601,13 +621,14 @@ namespace MusicGame::Graphics
 
 					{
 
-						const int32 peekPositionY = highwayScrollContext.getPositionY(y + std::next(itr)->first) + kLaserShiftY;
+						const int32 peekPositionY = positionAt(pointIdx + 1, std::next(itr)->first);
 
 						if ((slamHeight > 0 && peekPositionY > slamTopY) || (slamHeight < 0 && peekPositionY < slamTopY))
 
 						{
 
 							++itr;
+							++pointIdx;
 						}
 
 						else
@@ -660,17 +681,22 @@ namespace MusicGame::Graphics
 
 					const auto& [nextRy, nextPoint] = *nextItr;
 
-					const int32 nextPositionY = highwayScrollContext.getPositionY(y + nextRy) + kLaserShiftY;
+					const int32 nextPositionY = positionAt(pointIdx + 1, nextRy);
 
 					// 線全体が描画範囲外の場合はスキップ
 
-					if (!highwayScrollContext.isPulseRangeInDrawRange(y + ry, y + nextRy, kLaserShiftY))
+					// (monotonic: the endpoints bound the line, the same result isPulseRangeInDrawRange gives;
+					//  otherwise it also samples points between them)
+					const bool isLineInRange = isMonotonic
+												   ? (Max(positionY, nextPositionY) >= 0 && Min(positionY, nextPositionY) < kHighwayTextureSize.y)
+												   : highwayScrollContext.isPulseRangeInDrawRange(y + ry, y + nextRy, kLaserShiftY);
+					if (!isLineInRange)
 
 					{
 
 						// scroll_speedに負の値がなく、線全体が上にある場合は以降も描画対象外
 
-						if (!hasNegativeScrollSpeed && Max(positionY, nextPositionY) < 0)
+						if (isMonotonic && Max(positionY, nextPositionY) < 0)
 
 						{
 
@@ -765,18 +791,35 @@ namespace MusicGame::Graphics
 			const auto& laneStatus = gameStatus.laserLaneStatus[laneIdx];
 
 			// scroll_speedに負の値が含まれている場合は過去のノーツも描画範囲に入る可能性があるため、先頭から走査
+			// (then the precomputed bounds skip most sections without computing positions)
+			// C-mod ignores scroll_speed, so its positions stay in chart order even then; start near the
+			// judgment line, stepping back over sections whose tail or start texture may still show.
 
 			const bool hasNegativeScrollSpeed = highwayScrollContext.hasNegativeScrollSpeed();
 
-			auto itr = hasNegativeScrollSpeed ? lane.begin() : kson::ValueItrAt(lane, gameStatus.currentPulse);
+			const bool isMonotonic = highwayScrollContext.isMonotonic();
+			const auto& bounds = highwayScrollContext.highwayScroll().laserBounds(laneIdx);
+			auto itr = !isMonotonic				? lane.begin()
+					   : hasNegativeScrollSpeed ? highwayScrollContext.firstDrawCandidate(lane, [](const auto& entry)
+																						  {
+																							  return entry.first + entry.second.v.rbegin()->first;
+																						  },
+																						  kLaserCullMarginPx)
+												: kson::ValueItrAt(lane, gameStatus.currentPulse);
 
 			m_visibleLaserSections.clear();
 
-			for (; itr != lane.end(); ++itr)
+			m_pointPositionsY.clear();
+
+			for (std::size_t index = 0; itr != lane.end(); ++itr, ++index) // index is only used with the bounds (starting at lane.begin())
 
 			{
 
 				const auto& [y, laserSection] = *itr;
+				if (!highwayScrollContext.mayBeInDrawRange(bounds, index, lane.size(), kLaserCullMarginPx))
+				{
+					continue;
+				}
 
 				const kson::RelPulse lengthRy = laserSection.v.rbegin()->first;
 
@@ -821,7 +864,9 @@ namespace MusicGame::Graphics
 
 				// 端点基準の固定オフセットである開始テクスチャ・終端tailは別途範囲を加味する
 
-				const bool pathInRange = highwayScrollContext.isPulseRangeInDrawRange(y, y + lengthRy, kLaserShiftY);
+				const bool pathInRange = isMonotonic
+											 ? (Max(sectionStartPositionY, sectionEndPositionY) >= 0 && Min(sectionStartPositionY, sectionEndPositionY) < kHighwayTextureSize.y)
+											 : highwayScrollContext.isPulseRangeInDrawRange(y, y + lengthRy, kLaserShiftY);
 
 				const bool startTextureInRange = startTextureMaxY >= 0 && startTextureMinY < kHighwayTextureSize.y;
 
@@ -833,7 +878,7 @@ namespace MusicGame::Graphics
 
 					// scroll_speedに負の値がなく、セクション全体が上にある場合はこれ以降も範囲外
 
-					if (!hasNegativeScrollSpeed && Max(sectionStartPositionY, Max(sectionEndPositionY, Max(startTextureMaxY, tailMaxY))) < 0)
+					if (isMonotonic && Max(sectionStartPositionY, Max(sectionEndPositionY, Max(startTextureMaxY, tailMaxY))) < 0)
 
 					{
 
@@ -851,7 +896,10 @@ namespace MusicGame::Graphics
 
 				const int32 textureRow = LaserTextureRow(judgmentStatus, gameStatus.currentTimeSec);
 
-				m_visibleLaserSections.push_back({ .y = y, .pLaserSection = &laserSection, .textureRow = textureRow });
+				m_visibleLaserSections.push_back({ .y = y, .pLaserSection = &laserSection, .textureRow = textureRow, .pointPositionsOffset = m_pointPositionsY.size() });
+				m_pointPositionsY.resize(m_pointPositionsY.size() + laserSection.v.size(), kUncachedPositionY);
+				m_pointPositionsY[m_visibleLaserSections.back().pointPositionsOffset] = sectionStartPositionY;
+				m_pointPositionsY.back() = sectionEndPositionY;
 			}
 
 			// レンダーターゲットの切り替えはセクション単位で行うと描画バッチが分断されるため、テクスチャの種類単位でまとめる
@@ -868,11 +916,11 @@ namespace MusicGame::Graphics
 
 				const TextureRegion laserStartTexture = m_laserNoteStartTextures[laneIdx](0, textureColumn);
 
-				for (const auto& [y, pLaserSection, textureRow] : m_visibleLaserSections)
+				for (const auto& [y, pLaserSection, textureRow, pointPositionsOffset] : m_visibleLaserSections)
 
 				{
 
-					DrawLaserSection(laneIdx, y, *pLaserSection, curvedPulses, highwayScrollContext, laserNoteTexture, textureRow, laserStartTexture);
+					DrawLaserSection(laneIdx, y, *pLaserSection, m_pointPositionsY.data() + pointPositionsOffset, isMonotonic, curvedPulses, highwayScrollContext, laserNoteTexture, textureRow, laserStartTexture);
 				}
 			}
 		}

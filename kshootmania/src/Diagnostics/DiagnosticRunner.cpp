@@ -10,6 +10,7 @@
 #include "JudgeSettingFixture.hpp"
 #include "RenderGeometryFixture.hpp"
 #include "LaserRenderFixture.hpp"
+#include "NoteRenderFixture.hpp"
 #include "ChartLoadFixture.hpp"
 #include "UnicodePathFixture.hpp"
 #include "ErrorReportFixture.hpp"
@@ -122,6 +123,20 @@ namespace DiagnosticRunner
 		if (ModDiagnostics::Arguments().contains(U"--laser-render-test"))
 		{
 			LaserRenderFixture::Run();
+			Vertical::OptionsPresentation::Reset();
+			ksmaudio::Terminate();
+			return true;
+		}
+		if (ModDiagnostics::Arguments().contains(U"--note-render-test"))
+		{
+			try
+			{
+				NoteRenderFixture::Run();
+			}
+			catch (const Error& error)
+			{
+				TextWriter{ FsUtils::GetResourcePath(U"note-render-failure.txt") }.writeln(error);
+			}
 			Vertical::OptionsPresentation::Reset();
 			ksmaudio::Terminate();
 			return true;

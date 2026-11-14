@@ -125,8 +125,17 @@ namespace MusicGame::Graphics
 			// 新しい予告のトリガー判定
 			if (!state.isActive && !m_triggeredSections[laneIdx].has_value())
 			{
-				for (const auto& [pulse, section] : laserLane)
+				// Skip the sections that start before the scan window instead of converting every one since
+				// the start of the chart each frame (the loop below would `continue` past them anyway; one
+				// earlier entry is kept in case SecToPulse rounds down onto it)
+				auto itr = laserLane.lower_bound(kson::SecToPulse(scanStartTimeSec, m_chartData.beat, timingCache));
+				if (itr != laserLane.begin())
 				{
+					--itr;
+				}
+				for (; itr != laserLane.end(); ++itr)
+				{
+					const auto& [pulse, section] = *itr;
 					const double laserStartTimeSec = kson::PulseToSec(pulse, m_chartData.beat, timingCache);
 
 					if (laserStartTimeSec > scanEndTimeSec)

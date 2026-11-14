@@ -20,6 +20,9 @@ namespace MusicGame::Graphics
 
 			/// @brief 判定状況に応じたテクスチャの行
 			int32 textureRow;
+
+			/// @brief Index of this section's first point in m_pointPositionsY
+			std::size_t pointPositionsOffset;
 		};
 
 		const Texture m_laserNoteTexture;
@@ -28,6 +31,10 @@ namespace MusicGame::Graphics
 
 		/// @brief 描画対象のセクションを溜めるバッファ(通常テクスチャとマスクテクスチャの描画で共用)
 		mutable Array<VisibleLaserSection> m_visibleLaserSections;
+
+		/// @brief Y position (with the laser shift) of every point of the visible sections, computed once per
+		///        frame and shared by both texture passes and the slam look-ahead loops
+		mutable Array<int32> m_pointPositionsY;
 
 	public:
 		LaserNoteGraphics();
