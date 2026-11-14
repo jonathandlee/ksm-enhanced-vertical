@@ -38,6 +38,8 @@ namespace ConfigIni
 		constexpr StringView kLaserMouseDirectionY = U"mouse_directiony";
 		constexpr StringView kLaserInputSensitivity = U"mouse_sensitivity";
 		constexpr StringView kSwapLaserLR = U"switchlaser";
+		constexpr StringView kInvertLaserL = U"invertlaser_l";
+		constexpr StringView kInvertLaserR = U"invertlaser_r";
 		constexpr StringView kSelectCloseFolderKey = U"closekey";
 		constexpr StringView kUse3BTsPlusStartAsBack = U"esckey_bt3";
 

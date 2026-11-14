@@ -234,6 +234,14 @@ std::unique_ptr<std::array<OptionMenu, OptionScene::kOptionMenuTypeEnumCount>> O
 																										 I18n::Get(I18n::Option::Off),
 																										 I18n::Get(I18n::Option::On),
 																									 }),
+			CreateInfo::Enum(I18n::Get(I18n::Option::ItemInvertLaserL), ConfigIni::Key::kInvertLaserL, Array<StringView>{
+																										   I18n::Get(I18n::Option::Off),
+																										   I18n::Get(I18n::Option::On),
+																									   }),
+			CreateInfo::Enum(I18n::Get(I18n::Option::ItemInvertLaserR), ConfigIni::Key::kInvertLaserR, Array<StringView>{
+																										   I18n::Get(I18n::Option::Off),
+																										   I18n::Get(I18n::Option::On),
+																									   }),
 			CreateInfo::Enum(I18n::Get(I18n::Option::ItemCloseDirectoryKey), ConfigIni::Key::kSelectCloseFolderKey, Array<StringView>{
 																														I18n::Get(I18n::Option::SelectCloseFolderKeyBackspace),
 																														I18n::Get(I18n::Option::SelectCloseFolderKeyEsc),

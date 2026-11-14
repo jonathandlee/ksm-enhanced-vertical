@@ -321,6 +321,8 @@ namespace I18n
 		ItemMouseYInputDirection,
 		ItemSliderMouseInputSensitivity,
 		ItemSwapLRLaser,
+		ItemInvertLaserL,
+		ItemInvertLaserR,
 		ItemCloseDirectoryKey,
 		Item3BTKeysStartBack,
 		ItemHispeedTypeXMod,

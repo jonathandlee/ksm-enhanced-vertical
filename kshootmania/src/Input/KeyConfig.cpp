@@ -962,5 +962,7 @@ double KeyConfig::LaserDeltaCursorX(int32 laneIdx, double deltaTimeSec)
 		}
 	}
 
-	return s_laserInputMethods[laneIdx]->getDeltaCursorX(deltaTimeSec);
+	const double deltaCursorX = s_laserInputMethods[laneIdx]->getDeltaCursorX(deltaTimeSec);
+	const bool invert = ConfigIni::GetBool(laneIdx == 0 ? ConfigIni::Key::kInvertLaserL : ConfigIni::Key::kInvertLaserR, false);
+	return invert ? -deltaCursorX : deltaCursorX;
 }
