@@ -504,6 +504,9 @@
     <ClCompile Include="src\Common\AssetManagement.cpp">
       <Filter>Source Files\Common</Filter>
     </ClCompile>
+    <ClCompile Include="src\Common\FrameLog.cpp">
+      <Filter>Source Files\Common</Filter>
+    </ClCompile>
     <ClCompile Include="src\Common\Encoding.cpp">
       <Filter>Source Files\Common</Filter>
     </ClCompile>
@@ -1262,6 +1265,9 @@
       <Filter>Header Files\MusicGame\Judgment</Filter>
     </ClInclude>
     <ClInclude Include="src\Common\AssetManagement.hpp">
+      <Filter>Header Files\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Common\FrameLog.hpp">
       <Filter>Header Files\Common</Filter>
     </ClInclude>
     <ClInclude Include="src\Common\Encoding.hpp">

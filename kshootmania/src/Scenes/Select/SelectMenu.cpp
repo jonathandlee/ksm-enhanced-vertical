@@ -1,4 +1,5 @@
 ﻿#include "Diagnostics/DiagnosticArguments.hpp"
+#include "Common/FrameLog.hpp"
 #include "SelectMenu.hpp"
 #include "Common/SongLoadDiagnostics.hpp"
 #include <cassert>
@@ -976,6 +977,22 @@ void SelectMenu::update(SongPreviewOnlyYN songPreviewOnly)
 		}
 	}
 
+	// Diagnostics: --select-autoscroll <ms> scrolls one item per interval, for frame-time measurements.
+	if (const auto& args = ModDiagnostics::Arguments(); !m_menu.empty() && args.contains(U"--select-autoscroll"))
+	{
+		static Stopwatch autoscrollClock{ StartImmediately::Yes };
+		const auto it = std::find(args.begin(), args.end(), U"--select-autoscroll");
+		const double intervalMs = std::distance(it, args.end()) >= 2 ? ParseOr<double>(*(it + 1), 150.0) : 150.0;
+		if (autoscrollClock.msF() >= intervalMs)
+		{
+			autoscrollClock.restart();
+			// --select-autoscroll-bounce: 30 items down, 30 back up, repeated (revisits the same items)
+			static int32 moves = 0;
+			const bool bounce = args.contains(U"--select-autoscroll-bounce");
+			externalDelta += (bounce && (moves / 30) % 2 == 1) ? -1 : 1;
+			++moves;
+		}
+	}
 	m_menu.updateWithExternalDelta(externalDelta);
 	if (const int32 deltaCursor = m_menu.deltaCursor(); deltaCursor != 0)
 	{
@@ -990,7 +1007,10 @@ void SelectMenu::update(SongPreviewOnlyYN songPreviewOnly)
 		{
 			playShakeUpTween();
 		}
-		refreshContentCanvasParams();
+		{
+			const FrameLog::Scope frameLogScope{ "select.params" };
+			refreshContentCanvasParams();
+		}
 		if (ModDiagnostics::Arguments().contains(U"--vertical-preview-select"))
 		{
 			TextWriter report{ U"vertical-select-preview-state.csv" };
@@ -998,6 +1018,7 @@ void SelectMenu::update(SongPreviewOnlyYN songPreviewOnly)
 			report.writeln(U"{},{},{}"_fmt(m_menu.cursor(), deltaCursor, currentChartFilePath().value_or(U"")));
 		}
 
+		const FrameLog::Scope frameLogScope{ "select.preview" };
 		refreshSongPreview();
 	}
 

@@ -1,6 +1,7 @@
 ﻿#include "Ini/AudioCalibration.hpp"
 #include "ksmaudio/Diagnostics.hpp"
 #include "GameMain.hpp"
+#include "Common/FrameLog.hpp"
 #include "Audio/AudioDefines.hpp"
 #include "GameMain.hpp"
 #include "GameDefines.hpp"
@@ -188,6 +189,7 @@ namespace MusicGame
 	void GameMain::updateStatus()
 	{
 		ksmaudio::qa::Scope qaScope{ "game.updateStatus", false };
+		const FrameLog::Scope frameLogScope{ "game.status" };
 		// 曲の音声の更新
 		ksmaudio::qa::Phase("game.BGM.update");
 		m_bgm.update();
@@ -264,7 +266,10 @@ namespace MusicGame
 
 		// 判定の更新
 		ksmaudio::qa::Phase("game.judgment");
-		m_judgmentMain->update(m_chartData, m_gameStatus, m_viewStatus);
+		{
+			const FrameLog::Scope frameLogScope{ "game.judgment" };
+			m_judgmentMain->update(m_chartData, m_gameStatus, m_viewStatus);
+		}
 
 		if (m_playOption.judgeSetting)
 		{
@@ -427,11 +432,14 @@ namespace MusicGame
 																	  ? m_sRandomFXAudioMapping->fxLanesForAudio
 																	  : m_chartData.note.fx;
 		ksmaudio::qa::Phase("game.effects");
+		Optional<FrameLog::Scope> audioEffectsScope{ std::in_place, "game.audioFx" };
 		m_audioEffectMain.update(m_bgm, m_chartData, fxNoteLanesForAudio, m_timingCache, {
 																							 .longFXPressed = longFXPressed,
 																							 .laserIsOnOrNone = laserIsOnOrNone,
 																						 },
 								 m_playOption.judgeSetting ? kson::SecToPulse(m_gameStatus.currentTimeSec - m_playOption.judgeSetting->values.visual / 1000.0, m_chartData.beat, m_timingCache) : m_gameStatus.currentPulse);
+		audioEffectsScope.reset();
+		Optional<FrameLog::Scope> soundEffectsScope{ std::in_place, "game.soundEffects" };
 
 		if (ksmaudio::IsASIOActive())
 			Audio::BeginScheduledAudioFrame(m_bgm.clockSnapshot(), Scene::DeltaTime());
@@ -465,6 +473,8 @@ namespace MusicGame
 		ksmaudio::qa::Phase("game.FXSounds");
 		if (!m_playOption.judgeSetting || m_playOption.judgeSetting->enabled())
 			m_fxChipSE.update(m_chartData, m_gameStatus, fxChipJudgedStatuses);
+		soundEffectsScope.reset();
+		const FrameLog::Scope graphicsUpdateScope{ "game.graphicsUpdate" };
 
 		// グラフィックの更新
 		ksmaudio::qa::Phase("game.graphicsUpdate");
@@ -492,6 +502,7 @@ namespace MusicGame
 	{
 		const GameRender::Scope renderScope{ m_renderContext };
 		ksmaudio::qa::Scope qaScope{ "game.draw", false };
+		const FrameLog::Scope frameLogScope{ "game.draw" };
 		// HighwayScrollのコンテキスト
 		// (HighwayScrollからの座標取得の引数を省略するためのもの)
 		const Scroll::HighwayScrollContext highwayScrollContext(&m_highwayScroll, &m_chartData.beat, &m_timingCache, &m_gameStatus);

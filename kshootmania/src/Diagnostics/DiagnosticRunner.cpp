@@ -76,6 +76,44 @@ namespace DiagnosticRunner
 
 	bool RunAfterAssetRegistration()
 	{
+		// --glyph-bench <out.txt>: cost of generating font glyphs one per call versus in batches.
+		if (const auto& args = ModDiagnostics::Arguments(); args.contains(U"--glyph-bench"))
+		{
+			const auto it = std::find(args.begin(), args.end(), U"--glyph-bench");
+			TextWriter out{ std::distance(it, args.end()) >= 2 ? *(it + 1) : FilePath{ U"glyph-bench.txt" } };
+			// 400 distinct common kanji/kana, split into two disjoint sets so neither run sees cached glyphs.
+			String pool;
+			for (char32 ch = 0x4E00; pool.size() < 400; ch += 7)
+				pool.push_back(ch);
+			const auto measure = [&](const Font& font, StringView chars, size_t chunk)
+			{
+				Stopwatch sw{ StartImmediately::Yes };
+				for (size_t i = 0; i < chars.size(); i += chunk)
+					font.preload(chars.substr(i, Min(chunk, chars.size() - i)));
+				return sw.msF();
+			};
+			const Font font = AssetManagement::SystemFont();
+			const double single = measure(font, StringView{ pool }.substr(0, 200), 1);
+			const double batched = measure(font, StringView{ pool }.substr(200, 200), 25);
+			out.writeln(U"System font, 200 glyphs one per call: {:.1f} ms ({:.2f} ms/glyph)"_fmt(single, single / 200));
+			out.writeln(U"System font, 200 glyphs 25 per call: {:.1f} ms ({:.2f} ms/glyph)"_fmt(batched, batched / 200));
+			const Font bitmap{ FontMethod::Bitmap, 44, Typeface::CJK_Regular_JP };
+			const double bitmapSingle = measure(bitmap, StringView{ pool }.substr(0, 200), 1);
+			out.writeln(U"Bitmap 44px font, 200 glyphs one per call: {:.1f} ms ({:.2f} ms/glyph)"_fmt(bitmapSingle, bitmapSingle / 200));
+			// Same font file the game uses, other methods and base sizes (fresh Font objects, so no cache)
+			for (const auto& [method, name] : { std::pair{ FontMethod::MSDF, U"MSDF" }, std::pair{ FontMethod::SDF, U"SDF" } })
+			{
+				for (const int32 size : { 44, 32, 24 })
+				{
+					const Font candidate{ method, size, Resource(U"assets/font/KSM-JA-Medium.ttf"), FontStyle::Default };
+					const double ms = measure(candidate, StringView{ pool }.substr(0, 100), 1);
+					out.writeln(U"{} {}px (game font), 100 glyphs: {:.1f} ms ({:.2f} ms/glyph)"_fmt(name, size, ms, ms / 100));
+				}
+			}
+			Vertical::OptionsPresentation::Reset();
+			ksmaudio::Terminate();
+			return true;
+		}
 		if (ModDiagnostics::Arguments().contains(U"--unicode-path-test"))
 		{
 			UnicodePathFixture::Run();

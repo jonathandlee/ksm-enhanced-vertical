@@ -1,5 +1,6 @@
 ﻿#include "SkinPreset.hpp"
 #include "I18n/I18n.hpp"
+#include "Common/FrameLog.hpp"
 #include <cstdio>
 #ifdef _WIN32
 #include <Siv3D/Windows/Windows.hpp>
@@ -172,6 +173,7 @@ namespace SkinPreset
 		g_resolvedImagePaths.clear();
 		noco::Asset::SetTextureLoader([](FilePathView path, noco::MipmapEnabledYN mip)
 									  {
+										  const FrameLog::Scope frameLogScope{ "texture.load" };
 										  String normalized{ path };
 										  normalized.replace(U'\\', U'/');
 										  if (normalized.starts_with(U"imgs/"))

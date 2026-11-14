@@ -1,6 +1,7 @@
 ﻿#include "Diagnostics/DiagnosticArguments.hpp"
 #include "Graphics/GameRenderContext.hpp"
 #include "GraphicsMain.hpp"
+#include "Common/FrameLog.hpp"
 #include "Vertical/VerticalLaneGeometry.hpp"
 #include "GraphicsMain.hpp"
 #include "GraphicsDefines.hpp"
@@ -568,11 +569,13 @@ namespace MusicGame::Graphics
 			// 各レンダーテクスチャを用意
 			m_highway3DGraphics.draw2D(chartData, laserCurvedPulses, m_playOption, timingCache, gameStatus, viewStatus, highwayScrollContext);
 			m_jdgoverlay3DGraphics.draw2D(gameStatus, viewStatus);
+			const FrameLog::Scope frameLogScope{ "draw.flush2D" };
 			Graphics2D::Flush();
 		}
 
 		// 3D空間を描画
 		Graphics3D::SetCameraTransform(m_camera);
+		Optional<FrameLog::Scope> backgroundScope{ std::in_place, "draw.background" };
 		if (m_playOption.showBG)
 		{
 			drawBG(viewStatus);
@@ -581,6 +584,7 @@ namespace MusicGame::Graphics
 		{
 			drawLayer(chartData, gameStatus, viewStatus);
 		}
+		backgroundScope.reset();
 		if (m_backgroundOnly)
 		{
 			Graphics3D::Flush();
@@ -588,12 +592,15 @@ namespace MusicGame::Graphics
 				m_tunnelWarp.drawDebug();
 			return;
 		}
+		Optional<FrameLog::Scope> draw3DScope{ std::in_place, "draw.3D" };
 		m_highway3DGraphics.draw3D(viewStatus);
 		m_jdgline3DGraphics.draw3D(viewStatus, GameRender::VerticalEnabled()
 												   ? Vertical::JudgmentBarWidthScale(m_camera, GameRender::Width())
 												   : 1.0);
 		m_jdgoverlay3DGraphics.draw3D(viewStatus, m_camera, m_highway3DGraphics.displayNoteAnchor());
 		m_laserCursor3DGraphics.draw3D(gameStatus, viewStatus, m_camera, m_highway3DGraphics.displayNoteAnchor());
+		draw3DScope.reset();
+		const FrameLog::Scope hudScope{ "draw.hud" };
 
 		// 手前に表示する2DのHUDを描画
 		if (m_playOption.skinPreview || m_playOption.judgeSetting)

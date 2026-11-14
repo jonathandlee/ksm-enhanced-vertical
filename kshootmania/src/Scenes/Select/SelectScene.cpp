@@ -1,5 +1,6 @@
 ﻿#include "Diagnostics/DiagnosticArguments.hpp"
 #include "ksmaudio/Diagnostics.hpp"
+#include "Common/FrameLog.hpp"
 #include "SelectScene.hpp"
 #include "Scenes/PlayPrepare/PlayPrepareScene.hpp"
 #include "Scenes/Title/TitleScene.hpp"
@@ -581,6 +582,7 @@ void SelectScene::update()
 	// 各種操作と干渉しないようCtrl・Shiftキー押下中は無視
 	if (!PlatformKey::KeyCommandControl.pressed() && !KeyShift.pressed())
 	{
+		const FrameLog::Scope frameLogScope{ "select.menuUpdate" };
 		m_menu.update();
 	}
 	else if (KeyShift.pressed())
@@ -676,7 +678,10 @@ void SelectScene::update()
 
 	updateAlphabetJump();
 
-	m_canvas->update(hitTestEnabled);
+	{
+		const FrameLog::Scope frameLogScope{ "select.canvasUpdate" };
+		m_canvas->update(hitTestEnabled);
+	}
 }
 
 void SelectScene::updateStartKeyLongPress()
@@ -792,6 +797,7 @@ void SelectScene::draw() const
 	ksmaudio::qa::Scope qaScope{ "SelectScene.draw", false };
 	if (Vertical::ModConfig::Load().enabled)
 		Scene::Rect().draw(Palette::Black);
+	const FrameLog::Scope frameLogScope{ "select.draw" };
 	m_canvas->draw();
 	m_commonOverlay.draw();
 }

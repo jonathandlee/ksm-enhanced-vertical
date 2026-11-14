@@ -12,6 +12,7 @@
 #include <CoTaskLib.hpp>
 #include <NocoUI.hpp>
 #include "Common/FrameRateLimit.hpp"
+#include "Common/FrameLog.hpp"
 #include "Common/IMEUtils.hpp"
 #include "Common/AssetManagement.hpp"
 #include "Addon/AutoMuteAddon.hpp"
@@ -751,7 +752,8 @@ void KSMMain()
 				chart = args[i + 1];
 		initialSceneFactory = Co::MakeSceneFactory<PlayPrepareScene>(chart, MusicGame::IsAutoPlayYN::No);
 	}
-	if (previewSelect)
+	// Diagnostics: start in song select with the user's own settings (no preview layout, no auto-exit).
+	if (previewSelect || ModDiagnostics::Arguments().contains(U"--start-select"))
 		initialSceneFactory = Co::MakeSceneFactory<SelectScene>();
 	if (previewResult)
 	{
@@ -789,6 +791,20 @@ void KSMMain()
 		},
 		Co::Layer::User_PostTransition_10
 	};
+	// Frame-time recording: framelog=1 in config.ini, or --frame-log <csv> [seconds] in diagnostics builds.
+	if (const auto& args = ModDiagnostics::Arguments(); args.contains(U"--frame-log"))
+	{
+		const auto it = std::find(args.begin(), args.end(), U"--frame-log");
+		if (std::distance(it, args.end()) >= 2)
+		{
+			const double seconds = std::distance(it, args.end()) >= 3 ? ParseOr<double>(*(it + 2), 0.0) : 0.0;
+			FrameLog::Start(*(it + 1), seconds);
+		}
+	}
+	else if (ConfigIni::GetBool(ConfigIni::Key::kFrameLog, false))
+	{
+		FrameLog::Start(FsUtils::GetResourcePath(U"log/frames-{}.csv"_fmt(DateTime::Now().format(U"yyyyMMdd-HHmmss"))));
+	}
 	Stopwatch previewTimer{ StartImmediately::Yes };
 	bool previewCaptured = false;
 	bool previewMenuOpened = false;
@@ -812,7 +828,13 @@ void KSMMain()
 	while (true)
 	{
 		ksmaudio::qa::FrameBegin();
-		if (!System::Update())
+		{
+			// Includes the GPU present and the frame limiter's sleep (sleep_ms in the log)
+			const FrameLog::Scope frameLogScope{ "system.update" };
+			if (!System::Update())
+				break;
+		}
+		if (!FrameLog::EndFrame())
 			break;
 		ksmaudio::qa::Phase("main.update");
 		if (ksmaudio::qa::writerFailed)
@@ -953,6 +975,7 @@ void KSMMain()
 			break;
 		}
 	}
+	FrameLog::Stop();
 
 	if (warpBench)
 	{

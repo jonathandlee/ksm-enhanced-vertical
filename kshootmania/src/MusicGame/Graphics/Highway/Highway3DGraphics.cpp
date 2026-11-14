@@ -1,6 +1,7 @@
 ﻿#include "Diagnostics/DiagnosticArguments.hpp"
 #include "Graphics/GameRenderContext.hpp"
 #include "Highway3DGraphics.hpp"
+#include "Common/FrameLog.hpp"
 #include "MusicGame/Graphics/GraphicsDefines.hpp"
 #include "MusicGame/Camera/CameraMath.hpp"
 #include "Note/NoteGraphicsUtils.hpp"
@@ -187,6 +188,7 @@ namespace MusicGame::Graphics
 
 			// 小節線を描画
 			{
+				const FrameLog::Scope frameLogScope{ "draw.barLines" };
 				const int64 startMeasureIndex = kson::PulseToMeasureIdx(gameStatus.currentPulse, chartData.beat, timingCache) - 1;
 				const int64 endMeasureIndex = startMeasureIndex + kMaxNumBarLines + 1;
 				for (int64 measureIndex = startMeasureIndex; measureIndex < endMeasureIndex; ++measureIndex)
@@ -221,12 +223,16 @@ namespace MusicGame::Graphics
 
 		const ScopedColorMul2D settingsOpacity{ ColorF{ 1.0, playOption.judgeSetting && !playOption.judgeSetting->enabled() ? .5 : 1.0 } };
 		// BT/FXノーツの描画
+		Optional<FrameLog::Scope> buttonsScope{ std::in_place, "draw.buttons" };
 		m_buttonNoteGraphics.draw(chartData, gameStatus, viewStatus, playOption, highwayScrollContext, m_renderTexture);
 
 		// キービームの描画
 		m_keyBeamGraphics.draw(gameStatus, viewStatus, m_renderTexture);
 
+		buttonsScope.reset();
+
 		// レーザーノーツの描画
+		const FrameLog::Scope lasersScope{ "draw.lasers" };
 		m_laserNoteGraphics.draw(chartData, laserCurvedPulses, playOption, gameStatus, highwayScrollContext, m_renderTexture);
 	}
 
