@@ -81,7 +81,7 @@ namespace
 		Array<String> lines = Encoding::ReadTextFileLinesShiftJISOrUTF8BasedOnBOM(favPath);
 
 		// 削除するパスを正規化
-		FilePath songFullPath = FileSystem::PathAppend(songsDir, songPath);
+		FilePath songFullPath = FsUtils::FullPathFromSongsRelative(songPath);
 		songFullPath.replace(U"\\", U"/");
 		if (songFullPath.ends_with(U'/'))
 		{
@@ -93,7 +93,7 @@ namespace
 		for (auto it = lines.begin(); it != lines.end();)
 		{
 			// .fav内にあるパスを正規化
-			FilePath lineFullPath = FileSystem::PathAppend(songsDir, *it);
+			FilePath lineFullPath = FsUtils::FullPathFromSongsRelative(*it);
 			lineFullPath.replace(U"\\", U"/");
 			if (lineFullPath.ends_with(U'/'))
 			{
@@ -521,12 +521,12 @@ void SelectScene::update()
 		return;
 	}
 
-	const bool closeFolder = !inSearchMode && m_menu.isFolderOpen() && KeyConfig::Down(m_folderCloseButton /* ← kBackspace・kBackのいずれかが入っている */);
+	const bool closeFolder = !inSearchMode && m_menu.canGoUp() && KeyConfig::Down(m_folderCloseButton /* ← kBackspace・kBackのいずれかが入っている */);
 
-	// BackSpaceキーまたはBackボタン(Escキー)でフォルダを閉じる
+	// BackSpaceキーまたはBackボタン(Escキー)でフォルダを閉じる (or leave the open library)
 	if (closeFolder)
 	{
-		m_menu.closeFolder(PlaySeYN::No);
+		m_menu.goUp(PlaySeYN::No);
 	}
 
 	// Backボタン(Escキー)を押した場合、(フォルダを閉じる状況でなければ)タイトル画面へ戻る

@@ -37,9 +37,10 @@ namespace KscIO
 			}
 
 			// サブフォルダの存在を考慮する必要があるため、songsフォルダからの相対パスを使用してkscファイルのパスを生成
-			const auto relativeChartFilePath = FsUtils::RelativePathFromSongsDir(chartFilePath); // TODO: songsフォルダ以外が指定可能になったら要修正
+			// Foreign libraries come back prefixed ("@osu/..."), so they never collide with KSM scores
+			const auto relativeChartFilePath = FsUtils::RelativePathFromSongsDir(chartFilePath);
 			const String currentPlayer{ ConfigIni::GetString(ConfigIni::Key::kCurrentPlayer) };
-			*pFilePath = FileSystem::PathAppend(FsUtils::ScoreDirectoryPath(), U"{}/{}.ksc"_fmt(currentPlayer, FsUtils::EliminateExtension(relativeChartFilePath)));
+			*pFilePath = FileSystem::PathAppend(FsUtils::ScoreDirectoryPath(), U"{}/{}.ksc"_fmt(currentPlayer, ForeignChart::ScoreStem(relativeChartFilePath)));
 			return true;
 		}
 

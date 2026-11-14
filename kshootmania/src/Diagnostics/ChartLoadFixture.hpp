@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "Common/FsUtils.hpp"
+#include "Common/ChartIO.hpp"
 #include "Scenes/Select/SelectChartInfo.hpp"
 #include "Scenes/Select/SelectMenuCacheDb.hpp"
 #include "MusicGame/Judgment/ExScore.hpp"
@@ -43,7 +44,7 @@ namespace ChartLoadFixture
 						 const auto meta = SelectChartInfo::LoadMetaChartData(file);
 						 report.writeln(U"meta_error={} title={}"_fmt(static_cast<int>(meta.error), Unicode::FromUTF8(meta.meta.title)));
 					 });
-				const auto chart = kson::LoadKshChartData(file.toUTF8());
+				const auto chart = ChartIO::LoadChartData(file);
 				report.writeln(U"full_error={}"_fmt(static_cast<int>(chart.error)));
 				const auto timing = kson::CreateTimingCache(chart.beat);
 				for (size_t lane = 0; lane < chart.note.bt.size(); ++lane)

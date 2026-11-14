@@ -28,6 +28,8 @@ namespace MusicGame::Judgment
 	}
 	int64 LoadChartExMaximum(FilePathView path)
 	{
+		if (ForeignChart::IsForeignChart(path))
+			return 0; // EX SCORE is off for osu!/StepMania charts
 		try
 		{
 			const auto chart = FsUtils::HasKsonExtension(path) ? kson::LoadKsonChartData(String{ path }.toUTF8()) : kson::LoadKshChartData(String{ path }.toUTF8());

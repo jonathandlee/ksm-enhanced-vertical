@@ -650,9 +650,7 @@ void KSMMain()
 	// テストプレイの場合、譜面ファイルの読み込みを事前検証
 	if (testPlayArgs.has_value())
 	{
-		const auto chartData = FsUtils::HasKsonExtension(testPlayArgs->chartFilePath)
-								   ? kson::LoadKsonChartData(testPlayArgs->chartFilePath.toUTF8())
-								   : kson::LoadKshChartData(testPlayArgs->chartFilePath.toUTF8());
+		const auto chartData = ChartIO::LoadChartData(testPlayArgs->chartFilePath);
 		if (chartData.error != kson::ErrorType::None)
 		{
 			MessageBoxUtils::ShowOK(ErrorReporting::FormatMessage(ErrorReporting::Record(ErrorReporting::Stage::Chart, testPlayArgs->chartFilePath, Unicode::FromUTF8(kson::GetErrorString(chartData.error)), ErrorReporting::Reason::ChartFormat)), MessageBoxStyle::Error);

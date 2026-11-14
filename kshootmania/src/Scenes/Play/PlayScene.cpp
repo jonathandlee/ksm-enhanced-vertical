@@ -420,7 +420,12 @@ void PlayScene::showAutoSyncSaveDialog()
 	if (result == MessageBoxResult::OK)
 	{
 		const FilePath chartFilePath{ m_gameMain.chartFilePath() };
-		if (FsUtils::HasKsonExtension(chartFilePath))
+		if (!ChartIO::IsWritable(chartFilePath))
+		{
+			// Never rewrite an osu!/StepMania file; the loader applies this override instead.
+			ForeignChart::SaveOffsetOverride(chartFilePath, newOffset);
+		}
+		else if (FsUtils::HasKsonExtension(chartFilePath))
 		{
 			ReplaceKsonOffset(chartFilePath, newOffset);
 		}

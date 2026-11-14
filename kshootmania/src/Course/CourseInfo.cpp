@@ -18,7 +18,8 @@ namespace
 	FilePath ResolveChartPath(StringView relativePath, FilePathView songsDir)
 	{
 		// 相対パスを絶対パスに変換
-		const FilePath fullPath = FileSystem::PathAppend(songsDir, relativePath);
+		(void)songsDir;
+		const FilePath fullPath = FsUtils::FullPathFromSongsRelative(relativePath);
 
 		// ファイルが存在するかチェック
 		if (FileSystem::IsFile(fullPath))

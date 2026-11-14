@@ -4,6 +4,7 @@
 #include "MusicGame/Scroll/HighwayScroll.hpp"
 #include "Common/SkinPreset.hpp"
 #include "Common/FsUtils.hpp"
+#include "Common/ChartIO.hpp"
 #include <chrono>
 
 namespace LaserRenderFixture
@@ -77,7 +78,7 @@ namespace LaserRenderFixture
 		{
 			if (!FsUtils::HasChartExtension(file))
 				continue;
-			auto chart = FsUtils::HasKsonExtension(file) ? kson::LoadKsonChartData(file.toUTF8()) : kson::LoadKshChartData(file.toUTF8());
+			auto chart = ChartIO::LoadChartData(file);
 			if (chart.error != kson::ErrorType::None)
 				throw Error{ U"Range chart failed" };
 			for (auto& lane : chart.note.laser)
@@ -162,7 +163,7 @@ namespace LaserRenderFixture
 		{
 			if (!FsUtils::HasChartExtension(file))
 				continue;
-			auto chart = FsUtils::HasKsonExtension(file) ? kson::LoadKsonChartData(file.toUTF8()) : kson::LoadKshChartData(file.toUTF8());
+			auto chart = ChartIO::LoadChartData(file);
 			if (chart.error != kson::ErrorType::None)
 				throw Error{ U"Fixture chart failed: " + file };
 			std::array<HashSet<kson::Pulse>, kson::kNumLaserLanesSZ> curves;

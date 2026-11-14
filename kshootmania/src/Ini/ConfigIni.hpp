@@ -53,6 +53,10 @@ namespace ConfigIni
 		constexpr StringView kShowTranslitKana = U"show_translit_kana";
 		constexpr StringView kShowTranslitHangul = U"show_translit_hangul";
 		constexpr StringView kShowTranslitKanji = U"show_translit_kanji";
+		constexpr StringView kOsuDirectory = U"osudir";
+		constexpr StringView kEtternaDirectory = U"etternadir";
+		constexpr StringView kStepManiaDirectory = U"stepmaniadir";
+		constexpr StringView kSelectLibrary = U"selectlibrary";
 
 		// Option > Key Config
 		constexpr StringView kKeyConfigKeyboard1 = U"key";

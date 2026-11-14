@@ -115,7 +115,7 @@ namespace
 		}
 
 		const String extension = FileSystem::Extension(path).lowercased();
-		return extension == U"ksh" || extension == U"kson" || extension == U"kco" || filename.lowercased() == U"foldername.csv" || filename.lowercased() == U"conf.ini";
+		return extension == U"ksh" || extension == U"kson" || extension == U"kco" || extension == U"osu" || extension == U"sm" || extension == U"ssc" || filename.lowercased() == U"foldername.csv" || filename.lowercased() == U"conf.ini";
 	}
 
 	Array<SourceFileInfo> CollectSourceFiles(FilePathView baseDirectoryPath)
@@ -212,6 +212,7 @@ namespace
 		int32 songDirectoryIndex)
 	{
 		bool chartExists = false;
+		const size_t firstRowIndex = pRows->size();
 		const Array<FilePath> chartFiles = FsUtils::GetChartFilePathsPreferringKson(songDirPath);
 		for (size_t chartFileIndex = 0; chartFileIndex < chartFiles.size(); ++chartFileIndex)
 		{
@@ -265,6 +266,22 @@ namespace
 			catch (const Error& error)
 			{
 				SongLoadDiagnostics::Write(U"select chart", chartFilePath, error.what());
+			}
+		}
+
+		// osu!/StepMania charts come back in filename order; list them easiest first
+		if (std::any_of(pRows->begin() + firstRowIndex, pRows->end(), [](const ChartRow& row)
+						{
+							return ForeignChart::IsForeignChart(row.chartFileRelativePath);
+						}))
+		{
+			std::stable_sort(pRows->begin() + firstRowIndex, pRows->end(), [](const ChartRow& a, const ChartRow& b)
+							 {
+								 return std::tuple{ a.chartData.meta.level, a.chartData.meta.difficulty.idx } < std::tuple{ b.chartData.meta.level, b.chartData.meta.difficulty.idx };
+							 });
+			for (size_t i = firstRowIndex; i < pRows->size(); ++i)
+			{
+				(*pRows)[i].chartFileIndex = static_cast<int32>(i - firstRowIndex);
 			}
 		}
 		return chartExists;
@@ -417,6 +434,16 @@ namespace
 			++index;
 		}
 
+		// Folders with osu!/StepMania charts also go stale when the parser changes
+		const bool hasForeignCharts = std::any_of(sourceFiles.begin(), sourceFiles.end(), [](const SourceFileInfo& file)
+												  {
+													  return ForeignChart::IsForeignChart(file.relativePath);
+												  });
+		if (hasForeignCharts && GetMeta(db, U"foreign_parser_version").value_or(U"") != Format(ForeignChart::kParserVersion))
+		{
+			return false;
+		}
+
 		return index == sourceFiles.size() && FileSystem::FullPath(baseDirectoryPath) == GetMeta(db, U"directory_path").value_or(U"");
 	}
 
@@ -432,6 +459,7 @@ namespace
 		CreateSchema(db);
 
 		SetMeta(db, U"schema_version", Format(kSchemaVersion));
+		SetMeta(db, U"foreign_parser_version", Format(ForeignChart::kParserVersion));
 		SetMeta(db, U"directory_path", FileSystem::FullPath(baseDirectoryPath));
 		SetMeta(db, U"source_file_count", Format(sourceFiles.size()));
 		SetMeta(db, U"latest_source_mtime_ms", Format(LatestMtime(sourceFiles)));
@@ -648,6 +676,28 @@ namespace
 
 		for (const auto& row : rows)
 		{
+			// osu!/StepMania charts are not packed into KSM's four slots: each one is its own single-chart entry
+			if (row.chartInfo && ForeignChart::IsForeignChart(row.chartInfo->chartFilePath()))
+			{
+				SelectCachedSong single{
+					.songDirectoryPath = row.songDirectoryPath,
+					.sectionDirectoryPath = row.sectionDirectoryPath,
+					.sectionDisplayName = row.sectionDisplayName,
+					.skipSectionHeading = row.skipSectionHeading,
+					.visibleInDirectoryNameSort = row.visibleInDirectoryNameSort,
+					.visibleInAllNameSort = row.visibleInAllNameSort,
+					.sectionDirectoryIndex = row.sectionDirectoryIndex,
+					.songDirectoryIndex = row.songDirectoryIndex,
+					.songSortKey = row.songSortKey,
+				};
+				single.chartInfos[Clamp(row.difficultyIdx, 0, kNumDifficulties - 1)] = row.chartInfo;
+				entries.push_back(SelectCachedSongEntry{
+					.song = std::move(single),
+					.isSingleChartItem = true,
+				});
+				continue;
+			}
+
 			auto [it, inserted] = songDirToEntryIndex.emplace(row.songDirectoryPath, entries.size());
 			if (inserted)
 			{

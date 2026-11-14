@@ -55,10 +55,7 @@ namespace
 }
 
 PlayPrepareScene::PlayPrepareScene(FilePathView chartFilePath, MusicGame::IsAutoPlayYN isAutoPlay, const Optional<CoursePlayState>& courseState, const Optional<MusicGame::TestPlayOption>& testPlayOption, const Optional<SelectSceneSearchParams>& selectSearchParams)
-	: m_chartFilePath(chartFilePath), m_isAutoPlay(isAutoPlay), m_chartData(FsUtils::HasKsonExtension(chartFilePath)
-																				? kson::LoadKsonChartData(chartFilePath.toUTF8())
-																				: kson::LoadKshChartData(chartFilePath.toUTF8())),
-	  m_courseState(courseState), m_testPlayOption(testPlayOption), m_selectSearchParams(selectSearchParams), m_canvas(LoadPlayPrepareSceneCanvas()), m_hispeedMenu(ConfigIni::LoadAvailableHispeedTypes(), LoadHispeedSettingFromConfigIni(), kson::GetEffectiveStdBPM(m_chartData), GetInitialBPM(m_chartData)), m_highwayScroll(m_chartData)
+	: m_chartFilePath(chartFilePath), m_isAutoPlay(isAutoPlay), m_chartData(ChartIO::LoadChartData(chartFilePath)), m_courseState(courseState), m_testPlayOption(testPlayOption), m_selectSearchParams(selectSearchParams), m_canvas(LoadPlayPrepareSceneCanvas()), m_hispeedMenu(ConfigIni::LoadAvailableHispeedTypes(), LoadHispeedSettingFromConfigIni(), kson::GetEffectiveStdBPM(m_chartData), GetInitialBPM(m_chartData)), m_highwayScroll(m_chartData)
 {
 	ksmaudio::qa::Scope qaConstruct{ "PlayPrepareScene.construct", true };
 	const double startBPM = GetInitialBPM(m_chartData);
