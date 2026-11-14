@@ -68,8 +68,8 @@ namespace
 
 	FilePath CacheBasePath()
 	{
-		const FilePath songsParentPath = FileSystem::ParentPath(FsUtils::SongsDirectoryPath());
-		return FileSystem::PathAppend(FileSystem::PathAppend(songsParentPath, U"cache"), U"songs_index");
+		// In the game folder, not beside the songs folder (which songsdir can move elsewhere)
+		return FileSystem::PathAppend(FileSystem::PathAppend(FsUtils::AppDataDirectoryPath(), U"cache"), U"songs_index");
 	}
 
 	FilePath CacheDirectoryPath(FilePathView directoryPath)

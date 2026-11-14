@@ -69,7 +69,17 @@ namespace FsUtils
 
 	FilePath SongsDirectoryPath()
 	{
-		return FileSystem::PathAppend(AppDataDirectoryPath(), U"songs");
+		// songsdir in config.ini; read once, so changing it needs a restart
+		static const FilePath s_songsDir = []
+		{
+			const StringView customDir = ConfigIni::GetString(ConfigIni::Key::kSongsDirectory);
+			if (!customDir.empty() && FileSystem::IsDirectory(customDir))
+			{
+				return FileSystem::FullPath(customDir);
+			}
+			return FileSystem::PathAppend(AppDataDirectoryPath(), U"songs");
+		}();
+		return s_songsDir;
 	}
 
 	FilePath SongsDefaultDirectoryPath()
